@@ -32,3 +32,4 @@ Signature_FE/*.ntvs*
 Signature_FE/*.njsproj
 Signature_FE/*.sln
 Signature_FE/*.sw?
+Signature_FE/package-lock.json
