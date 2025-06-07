@@ -1,0 +1,1 @@
+# Cấu hình global (setting từ .env)

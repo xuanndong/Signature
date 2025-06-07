@@ -1,0 +1,1 @@
+# Logic sinh khoá, mã hoá private key

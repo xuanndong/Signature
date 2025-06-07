@@ -1,0 +1,9 @@
+# Thư viện production (uvicorn, gunicorn)
+
+# Production Server
+gunicorn==20.1
+uvicorn[standard]==0.22 # Với các dependency tối ưu hoá
+uvloop==0.17 ; sys_platform == 'linux' # Tăng tốc async (chỉ linux)
+ 
+# Monitoring
+sentry-sdk==1.22 # Giám sát lỗi

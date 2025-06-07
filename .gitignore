@@ -1,0 +1,34 @@
+Signature/.env
+Signature/structure.md
+Signature/tests
+Signature/alembic
+Signature/src/__pycache__
+Signature/**/__pycache__
+Signature/src/testdb.py
+Signature/src/text.txt
+Signature/tests
+
+# Logs
+Signature_FE/logs
+Signature_FE/*.log
+Signature_FE/npm-debug.log*
+Signature_FE/yarn-debug.log*
+Signature_FE/yarn-error.log*
+Signature_FE/pnpm-debug.log*
+Signature_FE/lerna-debug.log*
+
+Signature_FE/node_modules
+Signature_FE/dist
+Signature_FE/dist-ssr
+Signature_FE/*.local
+
+# Editor directories and files
+Signature_FE/.vscode/*
+Signature_FE/!.vscode/extensions.json
+Signature_FE/.idea
+Signature_FE/.DS_Store
+Signature_FE/*.suo
+Signature_FE/*.ntvs*
+Signature_FE/*.njsproj
+Signature_FE/*.sln
+Signature_FE/*.sw?

@@ -1,0 +1,14 @@
+# Thư viện phát triển (pytest, alembic)
+# Testing & Debug
+pytest==7.4
+httpx==0.28.1 # Async HTTP client để test API #
+faker==18.11 # Tạo dữ liệu giả
+pytest-asyncio==0.21 # Hỗ trợ test async
+pytest-cov==4.0 # Kiểm tra độ phủ code
+
+# Database Migrations
+alembic==1.15.2 #
+
+# Development Tools
+watchfiles==0.18 # Tự động reload khi code thày đổi thay uvloop
+ipython==8.12 # Interactive shell

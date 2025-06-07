@@ -1,0 +1,22 @@
+# Thư viện cơ bản (fastapi, sqlalchemy)
+# Core Backend
+fastapi==0.115.12 #
+uvicorn==0.34.2 #
+sqlalchemy==2.0.40 #
+asyncpg==0.30.0 #
+python-jose==3.3 
+bcrypt==4.3.0 #
+python-multipart==0.0.6
+python-dotenv==1.1.0 #
+pyjwt==2.10.1 # 
+
+# Crypto & Signing
+cryptography==44.0.2 #
+pyopenssl==23.0
+endesive==2       # hoặc pyhanko==0.14
+
+# File Handling
+aiofiles==23
+python-docx==0.0.11
+pikepdf==8.
+pillow==10.0 # Xử lý hình ảnh chữ ký
