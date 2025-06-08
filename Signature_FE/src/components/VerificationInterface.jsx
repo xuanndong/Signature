@@ -1,8 +1,10 @@
 import { useState } from 'react';
 
-const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete }) => {
+const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete, getPublicCert, getUserProfile }) => {
     const [isVerifying, setIsVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState(null);
+    const [certificate, setCertificate] = useState(null);
+    const [certificateInfo, setCertificateInfo] = useState(null);
 
     const handleVerify = async () => {
         setIsVerifying(true);
@@ -34,6 +36,37 @@ const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete }) => 
         }
     };
 
+    const handleCertificateImport = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setCertificate(file);
+            // Đọc thông tin chứng thư số
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                setCertificateInfo( content.content )
+            }
+            reader.readAsText(file);
+            
+        }
+    };
+
+    const handleGetCertificate = async () => {
+        const user = await getUserProfile();
+        const publicKey = await getPublicCert();
+        // Lấy chứng thư số từ hệ thống
+        const userCert = {
+            name: `ChungThuSo_${user.username}.cer`,
+            type: "application/x-x509-ca-cert"
+        };
+        
+        setCertificate(userCert);
+        setCertificateInfo(publicKey); // lưu public key vào đây
+        alert(`Đã lấy chứng thư số: ${userCert.name}`);
+        console.log(certificateInfo)
+    };
+
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-6 bg-white rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-6">
@@ -57,18 +90,59 @@ const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete }) => 
                     </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
                     <h3 className="font-medium text-gray-700 mb-2">Thông tin xác thực</h3>
-                    <p className="text-sm text-gray-600">
-                        Quá trình xác thực sẽ kiểm tra tính toàn vẹn của văn bản và chữ ký số (nếu có).
-                    </p>
+
+                    {certificate ? (
+                        <div className="mb-3">
+                            <div className="flex items-center mb-2">
+                                <CertificateIcon className="h-6 w-6 text-green-500 mr-2" />
+                                <span className="text-sm font-medium">{certificate.name}</span>
+                            </div>
+
+                            {/* {certificateInfo && (
+                                <div className="text-sm text-gray-600 space-y-1">
+                                    <p><span className="font-medium">Nhà cung cấp:</span> {certificateInfo.issuer}</p>
+                                    <p><span className="font-medium">Chủ thể:</span> {certificateInfo.subject}</p>
+                                    <p><span className="font-medium">Hiệu lực từ:</span> {certificateInfo.validFrom} đến {certificateInfo.validTo}</p>
+                                </div>
+                            )} */}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-600 mb-6">
+                            Quá trình xác thực sẽ kiểm tra tính toàn vẹn của văn bản và chữ ký số dựa trên chứng thư số được cung cấp.
+                        </p>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <label className="flex-1">
+                            <span className="sr-only">Import</span>
+                            <div className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-center text-sm font-medium">
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept=".cer,.pem,.crt"
+                                    onChange={handleCertificateImport}
+                                />
+                                Import
+                            </div>
+                        </label>
+
+                        <button
+                            onClick={handleGetCertificate}
+                            className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 text-sm font-medium"
+                        >
+                            Lấy chứng thư số
+                        </button>
+                    </div>
                 </div>
             </div>
 
+            {/* Phần còn lại giữ nguyên */}
             {verificationResult ? (
                 <div className={`p-4 rounded-lg mb-6 ${verificationResult.success
-                        ? 'bg-green-50 text-green-700 border border-green-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
                     }`}>
                     <p className="font-medium">{verificationResult.message}</p>
                 </div>
@@ -111,7 +185,25 @@ const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete }) => 
     );
 };
 
-// Thêm DocumentIcon và VerifyIcon nếu chưa có
+// Thêm CertificateIcon
+const CertificateIcon = (props) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        {...props}
+    >
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+        />
+    </svg>
+);
+
+// Giữ nguyên DocumentIcon và VerifyIcon
 const DocumentIcon = (props) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"

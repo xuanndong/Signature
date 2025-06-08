@@ -5,7 +5,8 @@ import bcrypt
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
-import os
+from src.auth.schemas import AuthConfig
+import uuid
 
 load_dotenv()
 
@@ -19,25 +20,39 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
 # JWT Configuration
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY chưa được cấu hình trong .env")
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
+auth: AuthConfig = AuthConfig()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 def create_access_token(data: dict) -> str:
-    """Tạo JWT token với PyJWT 2.x"""
+    """Tạo JWT token với JTI (JWT ID)"""
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # Sử dụng datetime.utcnow()
-    to_encode.update({"exp": expire})
+    expire = datetime.now(timezone.utc) + timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({
+        "exp": expire,
+        "jti": str(uuid.uuid4()),  # Thêm JTI để quản lý token
+        "type": "access"
+    })
     return jwt.encode(
         payload=to_encode,
-        key=SECRET_KEY,
-        algorithm=ALGORITHM
+        key=auth.SECRET_KEY,
+        algorithm=auth.ALGORITHM
     )
+
+
+# refresh token
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+def create_refresh_token(data: dict) -> str:
+    """Tạo refresh token với JTI"""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({
+        "exp": expire,
+        "jti": str(uuid.uuid4()),  # Thêm JTI để quản lý token
+        "type": "refresh"
+    })
+    return jwt.encode(to_encode, auth.SECRET_KEY, algorithm=auth.ALGORITHM)
+
 
 # Các biến cấu hình (phải giống với khi tạo token)
 
@@ -50,8 +65,8 @@ def decode_token(token: str) -> dict:
     try:
         payload = jwt.decode(
             token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
+            auth.SECRET_KEY,
+            algorithms=[auth.ALGORITHM],
             options={"verify_exp": True}  # Tự động kiểm tra thời hạn token
         )
         return payload

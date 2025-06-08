@@ -4,7 +4,9 @@ import FilePreviewModal from "./../components/FilePreviewModal";
 import SignatureInterface from "./../components/SignatureInterface";
 import VerificationInterface from '../components/VerificationInterface';
 
-const FileUpload = ({ setSelectedFile }) => {
+import { getPublicCert, getUserProfile } from '../api';
+
+const FileUpload = ({ setSelectedFile, user }) => {
     const [file, setFile] = useState(null);
     const [fileData, setFileData] = useState(null);
     const [notification, setNotification] = useState(null);
@@ -146,6 +148,8 @@ const FileUpload = ({ setSelectedFile }) => {
                         message: result.message
                     });
                 }}
+                getPublicCert={getPublicCert}
+                getUserProfile={getUserProfile}
             />
         );
     }
@@ -258,7 +262,7 @@ const FileUpload = ({ setSelectedFile }) => {
                         <div className="flex gap-3">
                             <button
                                 disabled={!file}
-                                onClick={handleVerify} // Thay đổi từ onClick trực tiếp sang hàm handleVerify
+                                onClick={handleVerify} 
                                 className={`px-5 py-2.5 rounded-lg font-medium flex items-center justify-center transition-colors ${file
                                         ? 'bg-green-600 hover:bg-green-700 text-white'
                                         : 'bg-gray-200 text-gray-500 cursor-not-allowed'

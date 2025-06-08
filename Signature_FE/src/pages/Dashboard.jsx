@@ -8,7 +8,6 @@ const Dashboard = ({ activePath, user }) => {
 
     useEffect(() => {
         fetchDocuments();
-        console.log("abc")
     }, [activePath]); // mỗi lần activePath thay đổi thì fetch thay đổi
 
     const fetchDocuments = () => {
@@ -37,21 +36,21 @@ const Dashboard = ({ activePath, user }) => {
                     status: 'Đã xác thực',
                 },
                 {
-                    id: 1,
+                    id: 4,
                     name: 'Hợp đồng lao động dài tên để kiểm tra responsive behavior',
                     format: 'PDF',
                     date: '2023-05-15 14:30',
                     status: 'Chưa ký',
                 },
                 {
-                    id: 2,
+                    id: 5,
                     name: 'Báo cáo tài chính Q1',
                     format: 'DOCX',
                     date: '2023-06-20 09:15',
                     status: 'Đã ký',
                 },
                 {
-                    id: 3,
+                    id: 6,
                     name: 'Đề xuất dự án mới',
                     format: 'PDF',
                     date: '2023-07-10 16:45',

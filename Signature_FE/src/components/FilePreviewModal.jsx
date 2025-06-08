@@ -125,15 +125,6 @@ const FilePreviewModal = ({ file, fileData, onClose }) => {
                         </div>
                     )}
                 </div>
-
-                <div className="border-t border-gray-200 p-4 sm:p-6 flex justify-end bg-gray-50">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        Đóng
-                    </button>
-                </div>
             </div>
         </div>
     );

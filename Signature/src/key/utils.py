@@ -14,7 +14,7 @@ def base_public_key(public_key):
         format = serialization.PublicFormat.SubjectPublicKeyInfo
     )
     return base64.b64encode(pem_bytes).decode()
-
+ 
 # ----------------------------
 # Tạo key từ password
 # ----------------------------

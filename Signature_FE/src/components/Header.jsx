@@ -108,7 +108,7 @@ const Header = ({ activePath, onNavigate, onLogout, user }) => {
                                 >
                                     <span className="sr-only">Open user menu</span>
                                     <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
-                                        {user?.name?.charAt(0) || 'U'}
+                                        {user?.username?.charAt(0) || 'U'}
                                     </div>
                                 </button>
 
@@ -116,7 +116,7 @@ const Header = ({ activePath, onNavigate, onLogout, user }) => {
                                 {showUserMenu && (
                                     <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none divide-y divide-gray-100">
                                         <div className="px-4 py-3">
-                                            <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'Người dùng'}</p>
+                                            <p className="text-sm font-medium text-gray-900 truncate">{user?.username || 'Người dùng'}</p>
                                             <p className="text-xs text-gray-500 truncate mt-1">{user?.email || ''}</p>
                                         </div>
                                         <div className="py-1">
@@ -177,11 +177,11 @@ const Header = ({ activePath, onNavigate, onLogout, user }) => {
                     <div className="flex items-center px-4">
                         <div className="flex-shrink-0">
                             <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
-                                {user?.name?.charAt(0) || 'U'}
+                                {user?.username?.charAt(0) || 'U'}
                             </div>
                         </div>
                         <div className="ml-3">
-                            <div className="text-base font-medium text-gray-800">{user?.name || 'Người dùng'}</div>
+                            <div className="text-base font-medium text-gray-800">{user?.username || 'Người dùng'}</div>
                             <div className="text-sm font-medium text-gray-500">{user?.email || ''}</div>
                         </div>
                     </div>

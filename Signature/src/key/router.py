@@ -10,7 +10,7 @@ from src.key.schemas import PublicResponse, PrivateResponse
 
 
 import os
-
+ 
 
 # Load env
 load_dotenv()
@@ -66,10 +66,11 @@ async def sign(
 @router.post("/verify", response_model=dict)
 async def verify(
     signed_data: VerifyRequest,
+    public_key: str,
     user_id: str = Depends(get_current_user_id),  # Lấy user_id từ token
     db: AsyncSession = Depends(get_db),
 ):
-    verify = await verify_data(db, user_id, signed_data.data.encode('utf-8'), signed_data.signature)
+    verify = await verify_data(db, user_id, public_key, signed_data.data.encode('utf-8'), signed_data.signature)
     return verify
 
 # # Đang suy nghĩ

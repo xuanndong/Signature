@@ -6,7 +6,7 @@ from uuid import UUID
 
 class KeyBase(BaseModel):
     user_id: UUID
-
+ 
 class SignRequest(BaseModel):
     data: str
 

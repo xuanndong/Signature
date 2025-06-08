@@ -1,5 +1,7 @@
 import { useState } from "react";
 import closeIcon from "../assets/close.png";
+// api call
+import { login } from "../api";
 
 function Login({ onClose, onLoginSuccess, onSignUpClick }) {
     return (
@@ -17,17 +19,18 @@ function Login({ onClose, onLoginSuccess, onSignUpClick }) {
                     />
                 </button>
 
-                <LoginForm onLoginSuccess={onLoginSuccess} onSignUpClick={onSignUpClick} />
+                <LoginForm onLoginSuccess={onLoginSuccess} onSignUpClick={onSignUpClick} onClose={onClose} />
             </div>
         </div>
     );
 }
 
-function LoginForm({ onLoginSuccess, onSignUpClick }) {
+function LoginForm({ onLoginSuccess, onSignUpClick, onClose }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
@@ -36,14 +39,14 @@ function LoginForm({ onLoginSuccess, onSignUpClick }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        setError('');
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log({ email, password });
-            // Handle successful login here
-        } catch (error) {
-            console.error("Login error:", error);
+            const data = await login(email, password);
+            await onLoginSuccess(data); // Truyền nguyên response token
+            onClose()
+        } catch (err) {
+            setError(err.message || "Đăng nhập thất bại");
         } finally {
             setIsLoading(false);
         }
@@ -116,6 +119,12 @@ function LoginForm({ onLoginSuccess, onSignUpClick }) {
                     </div>
                 </div>
 
+                {error && (
+                    <div className="text-red-500 text-sm mt-1">
+                        {error}
+                    </div>
+                )}
+
                 <div className="flex items-center">
                     <input
                         id="remember-me"
@@ -130,7 +139,6 @@ function LoginForm({ onLoginSuccess, onSignUpClick }) {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    onClick={onLoginSuccess}
                     className={`w-full flex justify-center items-center py-3 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition duration-200 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
                     {isLoading ? (

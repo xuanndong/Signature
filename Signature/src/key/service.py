@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key, l
 from src.key.schemas import PublicResponse, PrivateResponse
 from cryptography.exceptions import InvalidSignature
 
-
+ 
 def generate_rsa_key_pair():
     """ Tạo cặp khoá RSA 2048-bit """
     private_key = rsa.generate_private_key ( 
@@ -88,11 +88,11 @@ async def sign_data(db: AsyncSession, user_id: str, aes_key: str, data: bytes):
 
 
 # Xác thực chữ ký
-async def verify_data(db: AsyncSession, user_id: str, data: bytes, signature: str):
+async def verify_data(db: AsyncSession, user_id: str, public_key: str, data: bytes, signature: str):
     """
     Xác thực chữ ký bằng public key của người dùng
     """
-    public_key = await get_public_key(db, user_id)
+
     if not public_key:
         raise ValueError("Not found public key")
 
