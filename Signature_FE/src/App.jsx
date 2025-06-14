@@ -9,7 +9,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Profile from "./components/Profile";
 
-import { logout, getUserProfile, updateUserProfile } from "./api";
+import { logout, getUserProfile, updateUserProfile, getPublicCert, getPrivateCert } from "./api";
 
 
 function App() {
@@ -134,6 +134,8 @@ function App() {
             {currentView === "profile" && (
               <Profile
                 user={profileData || user}
+                getPublicCert={getPublicCert}
+                getPrivateCert={getPrivateCert}
                 onUpdate={handleProfileUpdate}
               />
             )}

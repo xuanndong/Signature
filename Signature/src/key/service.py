@@ -67,6 +67,7 @@ async def get_private_key(db: AsyncSession, user_id: str, aes_key: str):
     except Exception as e:
         raise ValueError(f"Lỗi khi giải mã private key: {str(e)}") from e
     
+
 # Ký số
 async def sign_data(db: AsyncSession, user_id: str, aes_key: str, data: bytes):
     """
@@ -87,12 +88,13 @@ async def sign_data(db: AsyncSession, user_id: str, aes_key: str, data: bytes):
     return base64.b64encode(signature).decode()
 
 
+
 # Xác thực chữ ký
-async def verify_data(db: AsyncSession, user_id: str, public_key: str, data: bytes, signature: str):
+async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: bytes, signature: str):
     """
     Xác thực chữ ký bằng public key của người dùng
     """
-
+    
     if not public_key:
         raise ValueError("Not found public key")
 

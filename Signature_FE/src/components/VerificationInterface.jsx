@@ -1,27 +1,34 @@
 import { useState } from 'react';
 
-const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete, getPublicCert, getUserProfile }) => {
+import { verifyPDF } from '../api';
+
+const VerificationInterface = ({ file, onBack, onVerifyComplete, getPublicCert, getUserProfile }) => {
     const [isVerifying, setIsVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState(null);
     const [certificate, setCertificate] = useState(null);
-    const [certificateInfo, setCertificateInfo] = useState(null);
+    let [certificateInfo, setCertificateInfo] = useState(null);
+    // let certificateInfo = null;
 
     const handleVerify = async () => {
+        if (!file) {
+            setVerificationResult({
+                success: false,
+                message: 'Vui lòng chọn file PDF trước khi xác thực'
+            });
+            return;
+        }
+
         setIsVerifying(true);
+
         try {
-            // Giả lập quá trình xác thực
-            await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Kết quả giả lập (thay bằng logic thực tế của bạn)
-            const randomSuccess = Math.random() > 0.3;
-            const result = {
-                success: randomSuccess,
-                message: randomSuccess
-                    ? 'Văn bản đã được xác thực thành công'
-                    : 'Không thể xác thực văn bản. Chữ ký không hợp lệ hoặc file đã bị thay đổi.'
-            };
+            const result = await verifyPDF(file, certificateInfo);
 
-            setVerificationResult(result);
+            setVerificationResult({
+                success: result.valid,
+                message: result.message || 'Xác thực thành công!'
+            });
+
             onVerifyComplete(result);
         } catch (error) {
             console.error("Lỗi xác thực:", error);
@@ -41,30 +48,37 @@ const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete, getPu
         if (file) {
             setCertificate(file);
             // Đọc thông tin chứng thư số
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 const content = e.target.result;
-                setCertificateInfo( content.content )
+
+                setCertificateInfo(content)
+                if (certificateInfo) {
+                    certificateInfo = certificateInfo.replace(/\r?\n/g, '\\n')
+                }
+            
             }
             reader.readAsText(file);
-            
         }
     };
 
     const handleGetCertificate = async () => {
         const user = await getUserProfile();
-        const publicKey = await getPublicCert();
+        let publicKey = await getPublicCert();
         // Lấy chứng thư số từ hệ thống
         const userCert = {
             name: `ChungThuSo_${user.username}.cer`,
             type: "application/x-x509-ca-cert"
         };
-        
+
+        if (publicKey) {
+            publicKey = publicKey.replace(/\r?\n/g, '\\n')
+        }
+
         setCertificate(userCert);
-        setCertificateInfo(publicKey); // lưu public key vào đây
+        setCertificateInfo(publicKey)
+        // console.log(certificateInfo)
         alert(`Đã lấy chứng thư số: ${userCert.name}`);
-        console.log(certificateInfo)
     };
 
     return (
@@ -122,7 +136,7 @@ const VerificationInterface = ({ file, fileData, onBack, onVerifyComplete, getPu
                                     type="file"
                                     className="hidden"
                                     accept=".cer,.pem,.crt"
-                                    onChange={handleCertificateImport}
+                                    onClick={handleCertificateImport}
                                 />
                                 Import
                             </div>

@@ -1,6 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_APP_API_BASE_URL;
 const API_AUTH = import.meta.env.VITE_APP_AUTH_API;
 const API_KEY = import.meta.env.VITE_APP_KEY_API;
+const API_DOCUMENT = import.meta.env.VITE_APP_DOCUMENT_API;
 
 const decodeToken = (token) => {
   try {
@@ -128,35 +129,147 @@ export const getPublicCert = async () => {
       }
     });
 
-    if(!response.ok) {
+    if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Failed to fetch public key info')
     }
 
     return await response.json();
-    
+
   } catch (error) {
     console.error('Get public key info error:', error);
     throw error;
   }
 }
 
+export const getPrivateCert = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_KEY}/private`, {
+      method: "GET",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to fetch private key info')
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Get private key info error:', error);
+    throw error;
+  }
+}
+
 // chưa hoàn thành
 export const updateUserProfile = async (userId, data) => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/${API_AUTH}/${userId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
+  const token = localStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/${API_AUTH}/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to update profile');
+  }
+
+  return await response.json();
+};
+
+// Api sign and verify
+export const verifyPDF = async (file, certificateInfo) => {
+
+  const formData = new FormData();
+  formData.append('file', file)
+  formData.append('public_key', certificateInfo)
+  console.log(certificateInfo)
+  console.log(file)
+
+  try {
+
+    const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/verify-pdf`, {
+      method: "POST",
+      body: formData, // Note: Don't set Content-Type header when using FormData
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+      },
     });
-    
+
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile');
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { detail: await response.text() };
+      }
+
+      const errorMessage = errorData.detail ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
-    
+
     return await response.json();
+  } catch (error) {
+    console.error('Verify PDF error:', error);
+
+    // Handle specific error cases
+    let userMessage = error.message;
+    if (error.name === 'AbortError') {
+      userMessage = 'Request timeout. Please try again.';
+    } else if (error.message.includes('Failed to fetch')) {
+      userMessage = 'Network error. Please check your connection.';
+    }
+
+    throw new Error(userMessage);
+  }
+};
+
+
+// Gọi API
+export const signPdf = async (file, position) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('position', JSON.stringify({
+    page: position.page,
+    x: position.x,
+    y: position.y,
+  }));
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/sign-pdf`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+      },
+    });
+
+    if (!response.ok) throw new Error('Ký PDF thất bại');
+
+    // Lấy metadata từ headers
+    const signature = response.headers.get('X-Signature');
+    const signingTime = response.headers.get('X-Signing-Time');
+    // Download file
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `signed_${file.name}`;
+    a.click();
+    
+    return { signature, signingTime };
+  } catch (error) {
+    console.error('Lỗi ký PDF:', error);
+    throw error;
+  }
 };

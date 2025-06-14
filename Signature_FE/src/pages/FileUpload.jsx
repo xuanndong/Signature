@@ -119,14 +119,6 @@ const FileUpload = ({ setSelectedFile, user }) => {
             <SignatureInterface
                 file={file}
                 onBack={() => setShowSignature(false)}
-                onComplete={(signedFile) => {
-                    setFile(signedFile);
-                    setShowSignature(false);
-                    setNotification({
-                        type: 'success',
-                        message: 'Văn bản đã được ký số thành công'
-                    });
-                }}
             />
         );
     }
@@ -139,7 +131,6 @@ const FileUpload = ({ setSelectedFile, user }) => {
         return (
             <VerificationInterface
                 file={file}
-                fileData={fileData}
                 onBack={() => setShowVerification(false)}
                 onVerifyComplete={(result) => {
                     setShowVerification(false);
@@ -178,8 +169,7 @@ const FileUpload = ({ setSelectedFile, user }) => {
                 <div className="p-4 md:p-6">
                     {/* Drop zone */}
                     <div
-                        className={`border-2 border-dashed rounded-lg p-6 md:p-8 text-center cursor-pointer transition-all mb-6 ${file ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                            }`}
+                        className={`border-2 border-dashed rounded-lg p-6 md:p-8 text-center cursor-pointer transition-all mb-6 ${file ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         onClick={() => fileInputRef.current.click()}

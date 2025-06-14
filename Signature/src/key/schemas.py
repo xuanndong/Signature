@@ -13,6 +13,7 @@ class SignRequest(BaseModel):
 class VerifyRequest(BaseModel):
     data: str
     signature: str
+    public_key: bytes
 
 class KeyCreate(KeyBase):
     public_key: str
