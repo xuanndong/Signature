@@ -11,7 +11,8 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key, l
 from src.key.schemas import PublicResponse, PrivateResponse
 from cryptography.exceptions import InvalidSignature
 
- 
+
+
 def generate_rsa_key_pair():
     """ Tạo cặp khoá RSA 2048-bit """
     private_key = rsa.generate_private_key ( 
@@ -20,6 +21,8 @@ def generate_rsa_key_pair():
     )
     public_key = private_key.public_key()
     return private_key, public_key
+
+
 
 
 async def get_public_key(db: AsyncSession, user_id: str):
@@ -94,18 +97,16 @@ async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: b
     """
     Xác thực chữ ký bằng public key của người dùng
     """
-    
     if not public_key:
         raise ValueError("Not found public key")
 
-    public_key_obj = load_pem_public_key(public_key)
-
-    signature = base64.b64decode(signature)
-
     try:
+        public_key_obj = load_pem_public_key(public_key)
+        signature_bytes = base64.b64decode(signature)  # Convert from base64 to bytes
+
         public_key_obj.verify(
-            signature,
-            data,
+            signature_bytes,
+            data,  # This should already be bytes
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA1()),
                 salt_length=padding.PSS.MAX_LENGTH
@@ -115,40 +116,14 @@ async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: b
 
         return {"valid": True, "message": "Chữ ký hợp lệ"}
     except InvalidSignature:
-        return {"valid": False, "message": "Chữ ký không hợp lệ"}
+        return {"valid": False, "message": "Chữ ký không hợp lệ haha"}
     except Exception as e:
-        return {"valid": False, "message": f"Lỗi xác thực: {str(e)}"}
-    
-# async def info_public(db: AsyncSession, user_id: str):
-#     key = await db.execute(select(Key).where(Key.user_id == user_id))
+        return {"valid": False, "message": f"Lỗi xác thực: {str(e)}"} 
 
-#     key = key.scalar_one_or_none()
 
-#     if not key:
-#         raise ValueError("Không tìm thấy khoá cho người dùng này")
-    
-#     key.public_key = base64.b64decode(key.public_key)
 
-#     inforPublic: PublicResponse = key
-
-#     return inforPublic
-
-# async def info_private(db: AsyncSession, user_id: str, aes_key: str):
-#     key = await db.execute(select(Key).where(Key.user_id == user_id))
-
-#     key = key.scalar_one_or_none()
-
-#     if not key:
-#         raise ValueError("Không tìm thấy khoá cho người dùng này")
-    
-#     key.encrypted_private = decrypt_private_key(
-#             {
-#                 "encrypted_key": key.encrypted_private,
-#                 "salt": key.salt,
-#                 "nonce": key.nonce
-#             },
-#             aes_key
-#         )
-#     inforPrivate: PrivateResponse = key
-
-#     return inforPrivate
+async def get_key(db: AsyncSession, user_id: str):
+    result = await db.execute(
+        select(Key).where(Key.user_id == user_id)
+    )
+    return result.scalar_one_or_none()

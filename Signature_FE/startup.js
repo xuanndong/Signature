@@ -8,7 +8,7 @@ let win; // khai báo biên win dùng để tạo lên một cửa sổ window c
 // Hàm tạo cửa sổ app
 function createWindow() {
   Menu.setApplicationMenu(null);
-  win = new BrowserWindow({ width: 1152, height: 789 }); // khai báo độ cao và rộng của cửa sổ
+  win = new BrowserWindow({ width: 1200, height: 940 }); // khai báo độ cao và rộng của cửa sổ
 
   win.loadURL("http://localhost:5173"); // load url của bạn, ở đây là localhost:3000 vì bạn đang chạy reactjs app trên port 3000
 

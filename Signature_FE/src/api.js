@@ -266,10 +266,106 @@ export const signPdf = async (file, position) => {
     a.href = url;
     a.download = `signed_${file.name}`;
     a.click();
-    
+
     return { signature, signingTime };
   } catch (error) {
     console.error('Lỗi ký PDF:', error);
     throw error;
   }
+};
+
+
+export const getUserDocuments = async () => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      return { data: null, error: 'No authentication token found' };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { 
+        data: null, 
+        error: errorData.detail || 'Failed to fetch documents' 
+      };
+    }
+
+    const data = await response.json();
+    return { data, error: null };
+
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return { 
+      data: null, 
+      error: error.message || 'Network error occurred' 
+    };
+  }
+};
+
+
+export const uploadDocument = async (file) => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      throw new Error('Vui lòng đăng nhập');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Tải lên thất bại');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw error;
+  }
+};
+
+
+export const documentContent = async (documentId) => {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            throw new Error('Authentication required');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/document/${documentId}/content`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to fetch document content');
+        }
+
+        return await response.json();
+        
+    } catch (error) {
+        console.error('Error fetching document content:', error);
+        throw error;
+    }
 };

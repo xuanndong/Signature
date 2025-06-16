@@ -8,11 +8,11 @@ class DocumentCreate(BaseModel):
     user_id: UUID
     filename: str
     status: str
-    filehash: str
 
 class DocumentResponse(DocumentCreate):
     document_id: int
     created_at: datetime
+    file_bytes: bytes
 
 class SignPosition(BaseModel):
     page: int

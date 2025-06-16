@@ -18,11 +18,11 @@ const FileUpload = ({ setSelectedFile, user }) => {
     const validateFile = useCallback((file) => {
         if (!file) return false;
 
-        // Validate file size (5MB max)
-        if (file.size > 5 * 1024 * 1024) {
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
             setNotification({
                 type: 'error',
-                message: 'File vượt quá dung lượng cho phép (5MB)'
+                message: 'File vượt quá dung lượng cho phép (10MB)'
             });
             return false;
         }
@@ -205,7 +205,7 @@ const FileUpload = ({ setSelectedFile, user }) => {
                                 className="hidden"
                             />
                             <p className="text-sm text-gray-500 mt-2">
-                                Chấp nhận: DOC, DOCX, RTF, TXT, CDT, PDF (tối đa 5MB)
+                                Chấp nhận: DOC, DOCX, RTF, TXT, CDT, PDF (tối đa 10MB)
                             </p>
                         </div>
                     </div>

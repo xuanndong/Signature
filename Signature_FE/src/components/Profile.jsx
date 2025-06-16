@@ -154,7 +154,7 @@ const Profile = ({ user, getPublicCert, getPrivateCert, onUpdate }) => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-start justify-center p-4">
+        <div className="bg-gray-100 flex items-start justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Header */}
                 <div className="bg-blue-600 p-4 text-white">

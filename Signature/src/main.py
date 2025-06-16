@@ -16,9 +16,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Rõ ràng hơn
     allow_headers=["*"],
-    expose_headers=["X-Signature"] 
+    expose_headers=["X-Signature", "Content-Disposition"]  # Thêm headers cần expose
 )
 
 app.include_router(auth_router, prefix="/auth")

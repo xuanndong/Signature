@@ -12,7 +12,7 @@ class Document(Base):
     user_id = Column(UUID, ForeignKey('users.user_id', ondelete='CASCADE'))
     filename = Column(String(255))
     status = Column(String(255))
-    filehash = Column(String(255))
+    file_bytes = Column(Text)
     created_at = Column(DateTime, server_default=func.now())
 
     # Relationship
@@ -28,7 +28,7 @@ class Signature(Base):
     document_id = Column(Integer, ForeignKey("documents.document_id", ondelete="CASCADE"))
     user_id = Column(UUID, ForeignKey('users.user_id', ondelete='SET NULL'))
     key_id = Column(Integer, ForeignKey('keys.key_id', ondelete='SET NULL'))
-    signature_hash = Column(Text)
+    signature = Column(Text)
     signed_at = Column(DateTime, server_default=func.now())
 
     # Relationship

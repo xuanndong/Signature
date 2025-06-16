@@ -52,7 +52,7 @@ const Home = ({ onLoginClick, onSignUpClick }) => {
                 </div>
 
                 {/* Right Column - Hero Image */}
-                <div className="flex-1 flex justify-center">
+                <div className="flex-1 flex justify-center mb-15">
                     <div className="w-full max-w-xs bg-white p-4 rounded-xl shadow-xl">
                         <img
                             src="src/assets/Signature.png"

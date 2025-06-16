@@ -1,13 +1,12 @@
 import { useState } from 'react';
 
-import { verifyPDF } from '../api';
+import { verifyPDF, getPublicCert } from '../api';
 
-const VerificationInterface = ({ file, onBack, onVerifyComplete, getPublicCert, getUserProfile }) => {
+const VerificationInterface = ({ file, onBack, onVerifyComplete }) => {
     const [isVerifying, setIsVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState(null);
     const [certificate, setCertificate] = useState(null);
     let [certificateInfo, setCertificateInfo] = useState(null);
-    // let certificateInfo = null;
 
     const handleVerify = async () => {
         if (!file) {

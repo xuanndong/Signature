@@ -71,20 +71,3 @@ async def verify(
 ):
     verify = await verify_data(db, user_id, signed_data.public_key, signed_data.data.encode('utf-8'), signed_data.signature)
     return verify
-
-# # Đang suy nghĩ
-# @router.get("/infor/public", response_model=PublicResponse)
-# async def infoPublic(
-#     user_id: str = Depends(get_current_user_id),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     info = await info_public(db, user_id)
-#     return info
-
-# @router.get("/infor/private", response_model=PrivateResponse)
-# async def infoPublic(
-#     user_id: str = Depends(get_current_user_id),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     info: PrivateResponse = await info_private(db, user_id, aes_key)
-#     return info
