@@ -30,7 +30,7 @@ const CheckCircleIcon = () => (
     </svg>
 );
 
-const FileList = ({ documents, loading, signingFile, setSigningFile, verificationFile, setVerificationFile, user }) => {
+const FileList = ({ documents, loading, signingFile, setSigningFile, verificationFile, setVerificationFile, user, handleUploadSuccess }) => {
     const [previewFile, setPreviewFile] = useState(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [signingFileData, setSigningFileData] = useState(null);
@@ -153,10 +153,10 @@ const FileList = ({ documents, loading, signingFile, setSigningFile, verificatio
     if (signingFile) {
         return (
             <SignatureInterface
-                file={signingFile} // dang xu ly voi signing file va tai chu ky 
+                file={signingFile}  
                 onBack={handleBackFromSigning}
-                originalFileData={signingFileData}
                 user={user}
+                handleUploadSuccess={handleUploadSuccess}
             />
         );
     }
@@ -166,10 +166,58 @@ const FileList = ({ documents, loading, signingFile, setSigningFile, verificatio
             <VerificationInterface
                 file={verificationFile}
                 onBack={handleBackFromVerification}
-                originalFileData={verificationFileData}
+                handleUploadSuccess={handleUploadSuccess}
             />
         );
     }
+
+
+    const handleDownloadFile = async (document) => {
+        try {
+            setPreviewLoading(true);
+            const responseData = await documentContent(document.id);
+
+            const byteString = atob(responseData.content);
+            const byteArray = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++) {
+                byteArray[i] = byteString.charCodeAt(i);
+            }
+
+            const blob = new Blob([byteArray], { type: responseData.mime_type || 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            // Hàm loại bỏ phần mở rộng file
+            const removeFileExtension = (filename) => {
+                if (!filename) return 'document';
+                return filename.replace(/\.[^/.]+$/, "");
+            };
+
+            // Lấy tên file không có extension
+            const filenameWithoutExt = removeFileExtension(responseData.filename || document.name);
+
+            if (typeof window !== 'undefined' && window.document) {
+                const a = window.document.createElement('a');
+                a.href = url;
+                a.download = `${filenameWithoutExt}`;
+                window.document.body.appendChild(a);
+                a.click();
+
+                setTimeout(() => {
+                    window.document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            } else {
+                window.open(url, '_blank');
+            }
+
+        } catch (error) {
+            console.error("Failed to download file:", error);
+            alert(error.message || "Không thể tải file xuống");
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
+
 
     return (
         <>
@@ -240,7 +288,7 @@ const FileList = ({ documents, loading, signingFile, setSigningFile, verificatio
                                                 <CheckCircleIcon /> Xác thực
                                             </button>
                                             <button
-                                                onClick={() => alert(`Tải xuống: ${doc.name}`)}
+                                                onClick={() => handleDownloadFile(doc)}
                                                 className="cursor-pointer flex items-center justify-center px-2 py-1 border border-transparent rounded text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
                                             >
                                                 <DownloadIcon /> Tải xuống

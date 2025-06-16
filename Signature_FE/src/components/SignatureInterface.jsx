@@ -7,7 +7,7 @@ import { signPdf } from '../api';
 // Cấu hình worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
+const SignatureInterface = ({ file, onBack, user, handleUploadSuccess }) => {
     // State management
     const [pdfState, setPdfState] = useState({
         scale: 1,
@@ -131,18 +131,22 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
 
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
+
+        // Tính toán vị trí click chính xác
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
         setSignatureState(prev => ({
             ...prev,
             position: {
-                page: pdfState.currentPage, // Actual page number
-                x: x / pdfState.scale,      // Normalized coordinates x / pdfState.scale
-                y: y / pdfState.scale,
+                page: pdfState.currentPage,
+                x: x,
+                y: y,
                 scale: pdfState.scale,
                 viewportWidth: canvas.width,
-                viewportHeight: canvas.height
+                viewportHeight: canvas.height,
+                displayWidth: rect.width,
+                displayHeight: rect.height
             }
         }));
     };
@@ -181,7 +185,8 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
                 ...prev,
                 notification: {
                     type: 'error',
-                    message: 'Please select signature position on the document'
+                    message: 'Vui lòng chọn vị trí chữ ký trên tài liệu',
+                    duration: 3000 // 3 giây
                 }
             }));
             return;
@@ -192,14 +197,13 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
 
             const result = await signPdf(file, signatureState.position);
 
-            // console.log(result.signature) // Dang xu ly o day
-
             setSignatureState(prev => ({
                 ...prev,
                 isSigning: false,
                 notification: {
                     type: 'success',
-                    message: `Document signed successfully at ${result.signingTime}`
+                    message: `Tài liệu đã được ký thành công! ${new Date(result.signingTime).toLocaleString()}`,
+                    duration: 5000 // 5 giây
                 }
             }));
         } catch (error) {
@@ -209,11 +213,13 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
                 isSigning: false,
                 notification: {
                     type: 'error',
-                    message: error.message || 'Error during signing process'
+                    message: error.message || 'Đã xảy ra lỗi trong quá trình ký tài liệu',
+                    duration: 5000 // 5 giây
                 }
             }));
         }
     };
+
 
     // Close notification
     const closeNotification = () => {
@@ -228,6 +234,8 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
                     type={signatureState.notification.type}
                     message={signatureState.notification.message}
                     onClose={closeNotification}
+                    onBack={onBack}
+                    handleUploadSuccess={handleUploadSuccess}
                 />
             )}
 
@@ -336,20 +344,20 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
                                         {/* Signature position indicator */}
                                         {signatureState.position?.page === pdfState.currentPage && (
                                             <div
-                                                className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-50 flex flex-col items-center justify-center"
+                                                className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-50 flex flex-col items-center justify-center pointer-events-none"
                                                 style={{
-                                                    left: `${signatureState.position.x * pdfState.scale}px`,
-                                                    top: `${signatureState.position.y * pdfState.scale}px`,
-                                                    width: '180px',
-                                                    height: '70px',
+                                                    left: `${signatureState.position.x}px`,
+                                                    top: `${signatureState.position.y}px`,
+                                                    width: '200px',
+                                                    height: '60px',
                                                     transform: 'translate(0, -100%)'
                                                 }}
                                             >
                                                 <div className="text-xs p-1 bg-blue-500 text-white w-full text-center">
-                                                    Singature Information
+                                                    Vị trí ký
                                                 </div>
                                                 <div className="text-xs p-1 text-center text-gray-700">
-                                                    Page {signatureState.position.page}
+                                                    Trang {signatureState.position.page}
                                                 </div>
                                             </div>
                                         )}
@@ -367,22 +375,48 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
                                                 Vị trí chữ ký
                                             </label>
                                             {signatureState.position ? (
-                                                <div className="bg-white p-3 rounded border border-gray-200">
-                                                    <p className="text-sm text-gray-700 mb-1">
-                                                        <span className="font-medium">Page:</span> {signatureState.position.page}
-                                                    </p>
-                                                    <p className="text-sm text-gray-700 mb-1">
-                                                        <span className="font-medium">X:</span> {Math.round(signatureState.position.x)}px
-                                                    </p>
-                                                    <p className="text-sm text-gray-700">
-                                                        <span className="font-medium">Y:</span> {Math.round(signatureState.position.y)}px
-                                                    </p>
+                                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <div className="flex items-center mb-3">
+                                                        <div className="bg-green-100 p-2 rounded-full mr-3">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-gray-800">Vị trí đã chọn</p>
+                                                            <p className="text-xs text-gray-500">Nhấn vào tài liệu để thay đổi</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2 text-sm bg-gray-50 p-2 rounded">
+                                                        <div className="text-center">
+                                                            <p className="text-gray-500">Trang</p>
+                                                            <p className="font-medium text-gray-700">{signatureState.position.page}/{pdfState.totalPages}</p>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <p className="text-gray-500">Tọa độ X</p>
+                                                            <p className="font-medium text-gray-700">{Math.round(signatureState.position.x)}px</p>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <p className="text-gray-500">Tọa độ Y</p>
+                                                            <p className="font-medium text-gray-700">{Math.round(signatureState.position.y)}px</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* <div className="mt-2 text-xs text-gray-500">
+                                                        <p>Tỷ lệ zoom: {Math.round(pdfState.scale * 100)}%</p>
+                                                        <p>Kích thước hiển thị: {Math.round(signatureState.position.viewportWidth)}×{Math.round(signatureState.position.viewportHeight)}px</p>
+                                                    </div> */}
                                                 </div>
                                             ) : (
-                                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                                                    <p className="text-sm text-yellow-700">
-                                                        Nhấn vào tài liệu để chọn vị trí chữ ký
-                                                    </p>
+                                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded flex items-start">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-yellow-700 mb-1">Chưa chọn vị trí</p>
+                                                        <p className="text-xs text-yellow-600">Vui lòng nhấn vào tài liệu bên cạnh để chọn vị trí đặt chữ ký số</p>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -390,11 +424,38 @@ const SignatureInterface = ({ file, onBack, originalFileData, user }) => {
                                         {/* Signer Info */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Thông tin ngừoi ký
+                                                Thông tin người ký
                                             </label>
-                                            <div className="bg-white p-3 rounded border border-gray-200">
-                                                <p className="font-medium text-gray-800">{user.username}</p>
-                                                <p className="text-sm text-gray-600">{user.email}</p>
+                                            <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-3">
+                                                <div className="flex items-center">
+                                                    <div className="bg-blue-100 p-2 rounded-full mr-3">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-800">{user.username}</p>
+                                                        <p className="text-sm text-gray-600">{user.email}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2 border-t border-gray-100">
+                                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                                        <div>
+                                                            <p className="text-gray-500">Tổ chức</p>
+                                                            <p className="font-medium text-gray-700">{user.organization || "Trường DH HAUI"}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500">Chức vụ</p>
+                                                            <p className="font-medium text-gray-700">{user.position || "Sinh viên"}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* <div className="bg-blue-50 p-2 rounded text-center text-xs text-blue-700">
+                                                    <p>Chứng thư số: {user.certificateId || "SERIAL-1234-5678"}</p>
+                                                    <p>Có hiệu lực đến: {user.certificateExpiry || "31/12/2025"}</p>
+                                                </div> */}
                                             </div>
                                         </div>
 

@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_db
-from src.key.service import get_public_key, get_private_key, sign_data, verify_data
+from src.key.service import get_public_key, get_private_key, sign_data, verify_data, generate_rsa_key_pair
 from src.auth.dependencies import get_current_user_id
 from src.key.schemas import VerifyRequest, SignRequest
 from dotenv import load_dotenv
@@ -71,3 +71,22 @@ async def verify(
 ):
     verify = await verify_data(db, user_id, signed_data.public_key, signed_data.data.encode('utf-8'), signed_data.signature)
     return verify
+
+
+@router.post("/create-key")
+async def create(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    private_key, public_key = await generate_rsa_key_pair()
+
+    if not private_key and not public_key:
+        return {
+            "status": False,
+            "message": "Error when generate new key"
+        }
+    
+    return {
+        "status": True,
+        "message": "Generate new key success"
+    }

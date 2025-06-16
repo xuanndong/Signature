@@ -119,6 +119,7 @@ const FileUpload = ({ setSelectedFile, user }) => {
             <SignatureInterface
                 file={file}
                 onBack={() => setShowSignature(false)}
+                user={user}
             />
         );
     }
@@ -132,15 +133,15 @@ const FileUpload = ({ setSelectedFile, user }) => {
             <VerificationInterface
                 file={file}
                 onBack={() => setShowVerification(false)}
-                onVerifyComplete={(result) => {
-                    setShowVerification(false);
-                    setNotification({
-                        type: result.success ? 'success' : 'error',
-                        message: result.message
-                    });
-                }}
-                getPublicCert={getPublicCert}
-                getUserProfile={getUserProfile}
+                // onVerifyComplete={(result) => {
+                //     setShowVerification(false);
+                //     setNotification({
+                //         type: result.success ? 'success' : 'error',
+                //         message: result.message
+                //     });
+                // }}
+                // getPublicCert={getPublicCert}
+                // getUserProfile={getUserProfile}
             />
         );
     }

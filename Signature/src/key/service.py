@@ -24,7 +24,6 @@ def generate_rsa_key_pair():
 
 
 
-
 async def get_public_key(db: AsyncSession, user_id: str):
     """
     Lấy public key của người dùng hiện tại

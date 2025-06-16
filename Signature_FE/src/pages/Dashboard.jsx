@@ -35,7 +35,7 @@ const Dashboard = ({ activePath }) => {
             if (data) {
                 const formattedDocuments = data.map(doc => ({
                     id: doc.document_id,
-                    name: doc.filename,
+                    name: doc.filename.replace(/\.[^/.]+$/, ""),
                     format: doc.filename.split('.').pop().toUpperCase(),
                     date: new Date(doc.created_at).toLocaleString('vi-VN'),
                     status: getStatusText(doc.status),
@@ -51,10 +51,12 @@ const Dashboard = ({ activePath }) => {
         }
     };
 
+
     const handleUploadSuccess = () => {
         setShowUploadModal(false);
         fetchDocuments(); // Load lại danh sách sau khi upload thành công
     };
+    
 
     const getStatusText = (status) => {
         const statusMap = {
@@ -114,6 +116,7 @@ const Dashboard = ({ activePath }) => {
                             verificationFile={verificationFile} 
                             setVerificationFile={setVerificationFile}
                             user={user}
+                            handleUploadSuccess={handleUploadSuccess}
                         />
                     </>
                 )}

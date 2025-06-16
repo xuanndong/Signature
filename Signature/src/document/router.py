@@ -1,17 +1,15 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.responses import StreamingResponse
-from io import BytesIO
+from sqlalchemy import func
 from typing import Annotated
 import os
 from src.database import get_db
 from dotenv import load_dotenv
-from datetime import datetime, timezone
 import json
 import binascii
-from urllib.parse import quote
 import base64
 from fastapi.responses import JSONResponse
+from datetime import datetime
 
 from src.document.schemas import SignPosition, DocumentResponse
 from src.document.utils import extract_and_verify, sign_pdf_with_stamp
@@ -35,7 +33,7 @@ if not aes_key:
 router = APIRouter(tags=["Document"])
 
 
-@router.get("/", response_model=List[DocumentResponse])  # Thường sẽ trả về danh sách
+@router.get("/", response_model=List[DocumentResponse])
 async def get_user_documents(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -78,7 +76,8 @@ async def upload_file(
                 detail="File không được vượt quá 10MB"
             )
 
-    
+        file_name = os.path.splitext(file.filename)[0]
+
         document = await create_document(db, user_id, file.filename, file_bytes)
         
         if not document:
@@ -86,7 +85,7 @@ async def upload_file(
                 status_code=400,
                 content={
                     "status": False,
-                    "message": f"File {file.filename} đã tồn tại",
+                    "message": f"File {file_name} đã tồn tại",
                     "document_id": None
                 }
             )
@@ -128,8 +127,8 @@ async def get_document_content(
         file_data = base64.b64decode(document.file_bytes)
         
         return {
-            "filename": f"{document.filename}.pdf",
-            "content": base64.b64encode(file_data).decode('utf-8'),  # Encode lại để trả về dạng base64 string an toàn
+            "filename": f"{document.filename}",
+            "content": base64.b64encode(file_data).decode('utf-8'),  
             "mime_type": "application/pdf"
         }
         
@@ -184,15 +183,17 @@ async def sign_pdf(
                     user_id=user_id,
                     filename=file.filename,
                     status="signed",
-                    file_bytes=pdf_bytes  
+                    file_bytes=base64.b64encode(signed_pdf).decode('utf-8')  
                 )
-                await document.save(db)
+                db.add(document)      
             else:
                 # Update existing document status
                 document.status = "signed"
-                document.file_bytes = pdf_bytes
-                document.created_at = datetime.now(timezone.utc)
-                await document.save(db)
+                document.file_bytes = base64.b64encode(signed_pdf).decode('utf-8')  
+                document.created_at = func.now()
+
+            await db.commit()
+            await db.refresh(document)
 
             key = await get_key(db, user_id)
 
@@ -203,25 +204,30 @@ async def sign_pdf(
                 key_id=key.key_id,
                 signature=sig
             )
-            await signature.save(db)
+            db.add(signature)
+            await db.commit()
+            await db.refresh(signature)
 
         except Exception as e:
+            await db.rollback()
             raise HTTPException(500, f"Signing failed: {str(e)}")
 
         # 4. Return response
-        return StreamingResponse(
-            BytesIO(signed_pdf),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": "attachment; filename=signed_{file.filename}.pdf",
+        return {
+            "message": "PDF signed successfully",
+            "status": "success",
+            "data": {
+                "document_id": str(document.document_id),
+                "filename": document.filename,
+                "signature_id": str(signature.signature_id),
+                "signed_at": document.created_at.isoformat() if document.created_at else None
             }
-        )
-
+        }
+    
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(500, f"Internal server error")
-    
     
 
 
@@ -252,8 +258,8 @@ async def verify_pdf(
         # 3. Process verification
         result = await extract_and_verify(
             db=db,
-            pdf_bytes=pdf_bytes,  # This is already bytes
-            public_key=cleaned_key,  # Now passing the cleaned bytes
+            pdf_bytes=pdf_bytes,  
+            public_key=cleaned_key,
             user_id=user_id
         )
 
@@ -265,16 +271,19 @@ async def verify_pdf(
                 user_id=user_id,
                 filename=file.filename,
                 status="verified",
-                file_bytes=pdf_bytes
+                file_bytes=base64.b64encode(pdf_bytes).decode('utf-8')  
             )
-            await document.save(db)
+            db.add(document)
+            
         else:
             # Update existing document status
             document.status = "verified"
-            await document.save(db)
+        
+        await db.commit()
+        await db.refresh(document)
         
 
-        # Get the signature for this document (assuming one signature per document)
+        # Get the signature for this document 
         signature = await get_signature(db, document.document_id, user_id)
         
         if signature:
@@ -284,22 +293,30 @@ async def verify_pdf(
                 user_id=user_id,
                 is_valid=result["valid"],
             )
-            await verification.save(db)
+            db.add(verification)
+            await db.commit()
+            await db.refresh(verification)
+
+
+        response_data = {
+            "status": "success",
+            "code": 200,
+            "message": "Verification completed",
+            "data": {
+                "is_valid": result["valid"],
+                "verification_time": datetime.now().isoformat(),
+            }
+        }
 
         # 5. Handle verification result
         if not result["valid"]:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "message": result["message"],
-                    "details": {
-                        "signer": result.get("signer"),
-                        "timestamp": result.get("sign_date")
-                    }
-                }
-            )
+            response_data.update({
+                "status": "error",
+                "code": 400,
+                "message": "Document verification failed"
+            })
 
-        return result
+        return response_data
 
     except HTTPException:
         raise

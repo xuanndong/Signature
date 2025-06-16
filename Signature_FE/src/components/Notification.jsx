@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 
-const Notification = ({ type = 'info', message, onClose }) => {
-    // Tự động đóng sau 5 giây
+const Notification = ({ type = 'info', message, onClose, onBack, handleUploadSuccess }) => {
+    // Tự động đóng sau 3 giây
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
-        }, 5000);
+            onBack();
+            handleUploadSuccess();
+        }, 3000);
 
         return () => clearTimeout(timer);
     }, [onClose]);

@@ -191,46 +191,40 @@ export const verifyPDF = async (file, certificateInfo) => {
   const formData = new FormData();
   formData.append('file', file)
   formData.append('public_key', certificateInfo)
-  console.log(certificateInfo)
-  console.log(file)
 
   try {
 
     const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/verify-pdf`, {
       method: "POST",
-      body: formData, // Note: Don't set Content-Type header when using FormData
+      body: formData,
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
       },
     });
 
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = { detail: await response.text() };
-      }
+    const responseData = await response.json();
 
-      const errorMessage = errorData.detail ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`;
-      throw new Error(errorMessage);
+    if (!response.ok) {
+      // Nếu API trả về lỗi có cấu trúc
+      if (responseData.status === "error") {
+        throw new Error(responseData.message || "Verification failed");
+      }
+      // Nếu API trả về lỗi không có cấu trúc
+      throw new Error(responseData.detail || `HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    // Trả về toàn bộ response data nếu thành công
+    return {
+      success: responseData.status === "success",
+      isValid: responseData.data?.is_valid || false,
+      message: responseData.message,
+      details: {
+        verificationTime: responseData.data?.verification_time,
+      },
+      rawData: responseData 
+    };
   } catch (error) {
     console.error('Verify PDF error:', error);
-
-    // Handle specific error cases
-    let userMessage = error.message;
-    if (error.name === 'AbortError') {
-      userMessage = 'Request timeout. Please try again.';
-    } else if (error.message.includes('Failed to fetch')) {
-      userMessage = 'Network error. Please check your connection.';
-    }
-
-    throw new Error(userMessage);
   }
 };
 
@@ -254,23 +248,23 @@ export const signPdf = async (file, position) => {
       },
     });
 
-    if (!response.ok) throw new Error('Ký PDF thất bại');
+    if (!response.ok) {
+      // Try to get error message from response body if available
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
 
-    // Lấy metadata từ headers
-    const signature = response.headers.get('X-Signature');
-    const signingTime = response.headers.get('X-Signing-Time');
-    // Download file
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `signed_${file.name}`;
-    a.click();
+    const responseData = await response.json();
 
-    return { signature, signingTime };
+    return {
+      signature: responseData.data.signature_id,
+      signingTime: responseData.data.signed_at,
+      documentId: responseData.data.document_id,
+      filename: responseData.data.filename
+    };
   } catch (error) {
-    console.error('Lỗi ký PDF:', error);
-    throw error;
+    console.error('Lỗi ký PDF:', error.message);
+    throw new Error(error.message || 'Đã xảy ra lỗi khi ký PDF');
   }
 };
 
@@ -292,9 +286,9 @@ export const getUserDocuments = async () => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      return { 
-        data: null, 
-        error: errorData.detail || 'Failed to fetch documents' 
+      return {
+        data: null,
+        error: errorData.detail || 'Failed to fetch documents'
       };
     }
 
@@ -303,9 +297,9 @@ export const getUserDocuments = async () => {
 
   } catch (error) {
     console.error('Error fetching documents:', error);
-    return { 
-      data: null, 
-      error: error.message || 'Network error occurred' 
+    return {
+      data: null,
+      error: error.message || 'Network error occurred'
     };
   }
 };
@@ -343,29 +337,29 @@ export const uploadDocument = async (file) => {
 
 
 export const documentContent = async (documentId) => {
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            throw new Error('Authentication required');
-        }
-
-        const response = await fetch(`${API_BASE_URL}/document/${documentId}/content`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || 'Failed to fetch document content');
-        }
-
-        return await response.json();
-        
-    } catch (error) {
-        console.error('Error fetching document content:', error);
-        throw error;
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      throw new Error('Authentication required');
     }
+
+    const response = await fetch(`${API_BASE_URL}/document/${documentId}/content`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to fetch document content');
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Error fetching document content:', error);
+    throw error;
+  }
 };

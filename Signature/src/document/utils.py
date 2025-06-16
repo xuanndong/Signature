@@ -21,19 +21,19 @@ async def sign_pdf_with_stamp(
     pdf_bytes: bytes,
     position: SignPosition
 ) -> tuple[bytes, str]:
-    # 1. Lấy thông tin người dùng
+    # Lấy thông tin người dùng
     user = await get_current_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 2. Loại bỏ vùng watermark từ bản gốc trước khi ký
+    # Loại bỏ vùng watermark từ bản gốc trước khi ký
     doc = fitz.open("pdf", pdf_bytes)
     page = doc[position.page - 1 if position.page > 0 else 0]
     
     # Xác định vùng sẽ thêm watermark (để loại bỏ tạm)
     exclusion_rect = fitz.Rect(
-        position.x - 5, position.y - 5,  # Thêm lề để chắc chắn
-        position.x + 205, position.y + 65
+        position.x - 5, position.y - 5,  
+        position.x + 300, position.y + 65
     )
     
     # Lấy nội dung không bao gồm vùng watermark
@@ -41,21 +41,21 @@ async def sign_pdf_with_stamp(
     clean_content = "\n".join([block[4] for block in text_blocks if len(block) > 4]).encode()
     clean_hash = hashlib.sha256(clean_content).hexdigest()
 
-    # 3. Tạo chữ ký từ nội dung đã làm sạch
+    # Tạo chữ ký từ nội dung đã làm sạch
     signature = await sign_data(db, user_id, aes_key, clean_content)
 
-    # 4. Thêm watermark vào bản gốc
+    # Thêm watermark vào bản gốc
     stamp_rect = fitz.Rect(position.x, position.y, position.x + 200, position.y + 60)
     page.draw_rect(stamp_rect, color=(1, 1, 0.8), fill=(1, 1, 0.8), overlay=True)
     page.insert_text((position.x + 10, position.y + 20), f"From: {user.username}", fontname="helv", fontsize=14)
-    page.insert_text((position.x + 10, position.y + 40), datetime.now().strftime('%d/%m/%Y %H:%M'), fontname="helv", fontsize=14)
+    page.insert_text((position.x + 10, position.y + 40), f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", fontname="helv", fontsize=14)
 
     # Lưu PDF đã có watermark
     watermarked_pdf = io.BytesIO()
     doc.save(watermarked_pdf)
     doc.close()
 
-    # 5. Thêm metadata
+    # Thêm metadata
     final_reader = PdfReader(watermarked_pdf)
     final_writer = PdfWriter()
     for page in final_reader.pages:
