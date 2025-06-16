@@ -39,6 +39,7 @@ function App() {
     try {
       const data = await getUserProfile(userId);
       setProfileData(data);
+
     } catch (error) {
       console.error('Failed to load user profile:', error);
     }
@@ -113,14 +114,13 @@ function App() {
             activePath={activePath}
             onNavigate={handleNavigate}
             onLogout={handleLogout}
-            user={user}
+            user={profileData}
           />
 
           <main className="flex-1 p-6">
             {currentView === "dashboard" && (
               <Dashboard
                 activePath={activePath}
-                user={user}
               />
             )}
 

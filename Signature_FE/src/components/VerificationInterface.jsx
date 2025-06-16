@@ -78,7 +78,6 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
                 });
                 setVerificationResult(null);
                 setIsLoadingCert(false);
-                showNotification('success', 'Nhập chứng thư số thành công');
             };
             reader.onerror = () => {
                 showNotification('error', 'Lỗi khi đọc file chứng thư');
@@ -103,7 +102,6 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
                 setCertificateInfo(publicKey);
                 setCertificateFile(userCert);
                 setVerificationResult(null);
-                showNotification('success', 'Lấy chứng thư số thành công');
             } else {
                 throw new Error('Không thể lấy chứng thư số từ hệ thống');
             }

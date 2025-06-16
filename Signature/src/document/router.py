@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import json
 import binascii
 import base64
+import io
+from pypdf import PdfReader
 from fastapi.responses import JSONResponse
 from datetime import datetime
 
@@ -75,10 +77,23 @@ async def upload_file(
                 status_code=400,
                 detail="File không được vượt quá 10MB"
             )
+        
+        is_signed = False
+        try:
+            reader = PdfReader(io.BytesIO(file_bytes))
+            metadata = reader.metadata or {}
+            if "/Signature" in metadata and "/SignerID" in metadata:
+                signer_id = metadata['/SignerID']
+                if str(signer_id) == str(user_id):
+                    is_signed = True
+                
+        except Exception as e:
+            print(f"Lỗi khi đọc metadata PDF: {str(e)}")
+
 
         file_name = os.path.splitext(file.filename)[0]
 
-        document = await create_document(db, user_id, file.filename, file_bytes)
+        document = await create_document(db, user_id, file.filename, file_bytes, status="signed" if is_signed else "uploaded")
         
         if not document:
             return JSONResponse(
@@ -263,58 +278,60 @@ async def verify_pdf(
             user_id=user_id
         )
 
-        # 4. Update database based on verification result
-        document = await get_document_by_filename(db, file.filename, user_id)
-        if not document:
-            # Create new document record if it doesn't exist
-            document = Document(
-                user_id=user_id,
-                filename=file.filename,
-                status="verified",
-                file_bytes=base64.b64encode(pdf_bytes).decode('utf-8')  
-            )
-            db.add(document)
+        if result['valid']:
+
+            # 4. Update database based on verification result
+            document = await get_document_by_filename(db, file.filename, user_id)
+            if not document:
+                # Create new document record if it doesn't exist
+                document = Document(
+                    user_id=user_id,
+                    filename=file.filename,
+                    status="verified",
+                    file_bytes=base64.b64encode(pdf_bytes).decode('utf-8')  
+                )
+                db.add(document)
+                
+            else:
+                # Update existing document status
+                document.status = "verified"
             
-        else:
-            # Update existing document status
-            document.status = "verified"
-        
-        await db.commit()
-        await db.refresh(document)
-        
-
-        # Get the signature for this document 
-        signature = await get_signature(db, document.document_id, user_id)
-        
-        if signature:
-            # Create verification record
-            verification = Verification(
-                signature_id=signature.signature_id,
-                user_id=user_id,
-                is_valid=result["valid"],
-            )
-            db.add(verification)
             await db.commit()
-            await db.refresh(verification)
+            await db.refresh(document)
+        
+
+            # Get the signature for this document 
+            signature = await get_signature(db, document.document_id, user_id)
+            
+            if signature:
+                # Create verification record
+                verification = Verification(
+                    signature_id=signature.signature_id,
+                    user_id=user_id,
+                    is_valid=result["valid"],
+                )
+                db.add(verification)
+                await db.commit()
+                await db.refresh(verification)
 
 
-        response_data = {
-            "status": "success",
-            "code": 200,
-            "message": "Verification completed",
-            "data": {
-                "is_valid": result["valid"],
-                "verification_time": datetime.now().isoformat(),
+            response_data = {
+                "status": "success",
+                "code": 200,
+                "message": "Verification completed",
+                "data": {
+                    "is_valid": result["valid"],
+                    "verification_time": datetime.now().isoformat(),
+                }
             }
-        }
 
         # 5. Handle verification result
-        if not result["valid"]:
-            response_data.update({
+        else:
+            response_data = {
                 "status": "error",
                 "code": 400,
                 "message": "Document verification failed"
-            })
+            }
 
         return response_data
 
