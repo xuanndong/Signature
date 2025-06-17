@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 
 import Dashboard from "./pages/Dashboard";
-import FileUpload from "./pages/FileUpload";
+import Text from "./pages/Text";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -125,8 +125,7 @@ function App() {
             )}
 
             {currentView === "fileupload" && (
-              <FileUpload
-                setSelectedFile={setSelectedFile}
+              <Text
                 user={user}
               />
             )}

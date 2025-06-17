@@ -115,7 +115,7 @@ async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: b
 
         return {"valid": True, "message": "Chữ ký hợp lệ"}
     except InvalidSignature:
-        return {"valid": False, "message": "Chữ ký không hợp lệ haha"}
+        return {"valid": False, "message": "Chữ ký không hợp lệ"}
     except Exception as e:
         return {"valid": False, "message": f"Lỗi xác thực: {str(e)}"} 
 

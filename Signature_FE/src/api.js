@@ -396,3 +396,99 @@ export const deleteDocument = async (documentId) => {
     throw error;
   }
 };
+
+
+// Helper function để xử lý response
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};
+
+export const generateKeys = async (userId) => {
+  try {
+    // Lấy private key (đã được mã hóa)
+    const privateKeyResponse = await fetch(`${API_BASE_URL}/${API_KEY}/private`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const privateKey = await handleResponse(privateKeyResponse);
+
+    // Lấy public key
+    const publicKeyResponse = await fetch(`${API_BASE_URL}/${API_KEY}/public`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const publicKey = await handleResponse(publicKeyResponse);
+
+    return {
+      privateKey: privateKey,
+      publicKey: publicKey
+    };
+  } catch (error) {
+    console.error('Error generating keys:', error);
+    throw error;
+  }
+};
+
+
+export const signData = async (dataToSign) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_KEY}/sign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ data: dataToSign })
+    });
+
+    const result = await handleResponse(response);
+    
+    if (result.notification === "Failess") {
+      throw new Error('Signing failed');
+    }
+
+    return {
+      signature: result.signature,
+      success: true
+    };
+  } catch (error) {
+    console.error('Signing error:', error);
+    throw error;
+  }
+};
+
+
+export const verifyData = async (dataToVerify, signature, publicKey) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_KEY}/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        data: dataToVerify,
+        signature: signature,
+        public_key: publicKey
+      })
+    });
+
+    const result = await handleResponse(response);
+    return result; // { valid: true/false, message: "..." }
+  } catch (error) {
+    console.error('Verification error:', error);
+    throw error;
+  }
+};
