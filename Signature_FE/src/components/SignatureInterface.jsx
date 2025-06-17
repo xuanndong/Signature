@@ -39,9 +39,10 @@ const SignatureInterface = ({ file, onBack, user, handleUploadSuccess }) => {
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({
                     data: arrayBuffer,
-                    disableFontFace: true,
-                    disableRange: true,
-                    disableStream: true
+                    disableFontFace: false,
+                    disableRange: false,
+                    disableStream: false,
+                    enableXfa: true
                 }).promise;
 
                 if (!isMounted) return;

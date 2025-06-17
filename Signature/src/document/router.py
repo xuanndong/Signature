@@ -12,13 +12,15 @@ import io
 from pypdf import PdfReader
 from fastapi.responses import JSONResponse
 from datetime import datetime
+from typing import Optional
 
 from src.document.schemas import SignPosition, DocumentResponse
 from src.document.utils import extract_and_verify, sign_pdf_with_stamp
 from src.models.document import Document, Signature
 from src.auth.dependencies import get_current_user_id
-from src.document.service import get_document_by_filename, get_signature, get_documents_by_user, create_document, get_document_by_id
+from src.document.service import get_document_by_filename, get_signature, get_documents_by_user, create_document, get_document_by_id, delete_document_by_id
 from src.key.service import get_key
+from src.auth.service import get_user_info
 from src.models.verificate import Verification
 from typing import List
 
@@ -82,10 +84,20 @@ async def upload_file(
         try:
             reader = PdfReader(io.BytesIO(file_bytes))
             metadata = reader.metadata or {}
-            if "/Signature" in metadata and "/SignerID" in metadata:
+
+            if "/SignaturesInfo" in metadata:
+                signatures_info = json.loads(metadata["/SignaturesInfo"])
+                for sig_info in signatures_info:
+                    if str(sig_info.get("signer_id")) == str(user_id):
+                        is_signed = True
+                        break
+            
+            # tương thích ngược
+            elif "/Signature" in metadata and "/SignerID" in metadata:
                 signer_id = metadata['/SignerID']
                 if str(signer_id) == str(user_id):
                     is_signed = True
+
                 
         except Exception as e:
             print(f"Lỗi khi đọc metadata PDF: {str(e)}")
@@ -178,7 +190,7 @@ async def sign_pdf(
             raise HTTPException(422, "Invalid position format")
         except TypeError as e:
             raise HTTPException(422, f"Invalid position data: {str(e)}")
-
+        
 
         # 3. Process signing
         try:
@@ -251,7 +263,8 @@ async def verify_pdf(
     file: UploadFile = File(..., description="PDF file to verify"),
     public_key: str = Form(..., description="PEM formatted public key"),
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    signature_to_verify: Optional[str] = Form(None)
 ):
     try:
         # 1. Validate input
@@ -270,12 +283,19 @@ async def verify_pdf(
         except Exception as e:
             raise HTTPException(400, f"Invalid public key: {str(e)}")
 
+        target_user_id = None
+        if signature_to_verify:
+            user = await get_user_info(db, signature_to_verify)
+            if user:
+                target_user_id = user.user_id
+
         # 3. Process verification
         result = await extract_and_verify(
             db=db,
             pdf_bytes=pdf_bytes,  
             public_key=cleaned_key,
-            user_id=user_id
+            user_id=user_id,
+            signature_to_verify=target_user_id
         )
 
         if result['valid']:
@@ -338,4 +358,22 @@ async def verify_pdf(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, "Internal verification error")
+        raise HTTPException(500, f"Internal verification error")
+
+
+@router.delete("/{document_id}")
+async def delete_document(
+    document_id: int,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    # Kiểm tra quyền truy cập nếu cần
+    document = await get_document_by_id(db, document_id, user_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document không tồn tại")
+    
+    success = await delete_document_by_id(db, document_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Document không tồn tại")
+    
+    return {"message": "Xóa document thành công"}

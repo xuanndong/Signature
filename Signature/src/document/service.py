@@ -61,3 +61,25 @@ async def create_document(db: AsyncSession, user_id: str, filename: str, file_by
     except Exception:
         await db.rollback()
         raise
+
+async def delete_document_by_id(db: AsyncSession, document_id: int) -> bool:
+
+    try:
+        # Tìm document cần xóa
+        result = await db.execute(
+            select(Document)
+            .where(Document.document_id == document_id)
+        )
+        document = result.scalar_one_or_none()
+        
+        if not document:
+            return False  
+            
+        # Thực hiện xóa
+        await db.delete(document)
+        await db.commit()
+        return True
+        
+    except Exception as e:
+        await db.rollback()
+        raise

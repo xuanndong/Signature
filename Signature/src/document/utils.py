@@ -5,12 +5,48 @@ import fitz  # PyMuPDF
 import hashlib
 import json
 from datetime import datetime
-
+from typing import List, Dict, Optional
+from collections import defaultdict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.document.schemas import SignPosition
 from src.key.service import sign_data, verify_data
 from src.auth.service import get_current_user
+
+async def get_existing_signatures(doc: fitz.Document) -> Dict[str, List[Dict]]:
+    """Lấy thông tin các chữ ký hiện có từ metadata với xử lý lỗi chi tiết hơn"""
+    try:
+        metadata = doc.metadata or {}
+        if "/SignaturesInfo" not in metadata:
+            return {}
+            
+        try:
+            signatures_info = json.loads(metadata["/SignaturesInfo"])
+            if not isinstance(signatures_info, list):
+                return {}
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"Error parsing SignaturesInfo: {e}")
+            return {}
+
+        result = defaultdict(list)
+        for sig in signatures_info:
+            try:
+                page = str(sig.get("page", 1))
+                result[page].append({
+                    'x': float(sig['x']),
+                    'y': float(sig['y']),
+                    'width': float(sig['width']),
+                    'height': float(sig['height']),
+                    'signature': sig['signature']
+                })
+            except (ValueError, KeyError) as e:
+                print(f"Invalid signature format: {e}")
+                continue
+                
+        return dict(result)
+    except Exception as e:
+        print(f"Unexpected error in get_existing_signatures: {e}")
+        return {}
 
 
 async def sign_pdf_with_stamp(
@@ -20,93 +56,132 @@ async def sign_pdf_with_stamp(
     pdf_bytes: bytes,
     position: SignPosition
 ) -> tuple[bytes, str]:
-    # Lấy thông tin người dùng
-    user = await get_current_user(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        # Xác thực người dùng
+        user = await get_current_user(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    # Mở PDF và chọn trang
-    doc = fitz.open("pdf", pdf_bytes)
-    page = doc[position.page - 1 if position.page > 0 else 0]
-    
-    # Tính toán vị trí chính xác (chuyển từ tọa độ frontend sang backend)
-    # Giả sử frontend gửi tọa độ đã tính toán đúng với PDF gốc
-    x, y = position.x, position.y - 45
-    
-    # Kích thước watermark
-    stamp_width = 180
-    stamp_height = 50
-    
-    # Tạo vùng loại trừ (lớn hơn stamp một chút để đảm bảo)
-    exclusion_rect = fitz.Rect(
-        x - 5, y - 5,  
-        x + stamp_width + 5, y + stamp_height + 5
-    )
-    
-    # Lấy nội dung không bao gồm vùng watermark
-    text_blocks = page.get_text("blocks", clip=page.rect - exclusion_rect)
-    clean_content = "\n".join([block[4] for block in text_blocks if len(block) > 4]).encode()
-    clean_hash = hashlib.sha256(clean_content).hexdigest()
+        # Mở PDF và kiểm tra trang
+        doc = fitz.open("pdf", pdf_bytes)
+        if position.page < 1 or position.page > len(doc):
+            raise HTTPException(status_code=400, detail="Invalid page number")
+        page = doc[position.page - 1]
 
-    # Tạo chữ ký từ nội dung đã làm sạch
-    signature = await sign_data(db, user_id, aes_key, clean_content)
+        # Kích thước cố định cho chữ ký
+        stamp_width, stamp_height = 180, 50
 
-    # Thêm watermark vào vị trí chính xác
-    stamp_rect = fitz.Rect(x, y, x + stamp_width, y + stamp_height)
-    
-    # Vẽ nền watermark
-    page.draw_rect(stamp_rect, color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
-    
-    # Thêm border
-    page.draw_rect(stamp_rect, color=(0, 0, 0), fill=None, width=1, overlay=True)
-    
-    # Thêm thông tin chữ ký
-    page.insert_text(
-        (x + 10, y + 20), 
-        f"From: {user.username}",
-        fontname="helv",
-        fontsize=11,
-        color=(0, 0, 0),
-        overlay=True
-    )
-    page.insert_text(
-        (x + 10, y + 40), 
-        f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        fontname="helv",
-        fontsize=11,
-        color=(0, 0, 0),
-        overlay=True
-    )
+        x, y = position.x - 48, position.y - 200
 
-    # Lưu PDF đã có watermark
-    watermarked_pdf = io.BytesIO()
-    doc.save(watermarked_pdf)
-    doc.close()
+        # Kiểm tra chồng chéo với các chữ ký hiện có
+        existing_signatures = await get_existing_signatures(doc)
+        new_rect = fitz.Rect(x, y, x + stamp_width, y + stamp_height)
+        
+        for sig in existing_signatures.get(str(position.page), []):
+            sig_rect = fitz.Rect(sig['x'], sig['y'], 
+                               sig['x'] + sig['width'], 
+                               sig['y'] + sig['height'])
+            if new_rect.intersects(sig_rect):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Signature position overlaps existing signature"
+                )
 
-    # Thêm metadata
-    final_reader = PdfReader(watermarked_pdf)
-    final_writer = PdfWriter()
-    for page in final_reader.pages:
-        final_writer.add_page(page)
-    
-    final_writer.add_metadata({
-        "/Signature": signature,
-        "/Signer": user.username,
-        "/SignerID": user_id,
-        "/SignDate": datetime.now().isoformat(),
-        "/ContentHash": clean_hash,
-        "/SignatureArea": json.dumps({
+       # Tạo danh sách tất cả vùng loại trừ (đã đúng)
+        all_exclusion_rects = [
+            fitz.Rect(x-5, y-5, x+stamp_width+5, y+stamp_height+5)  # Vùng mới
+        ]
+        for sig in existing_signatures.get(str(position.page), []):
+            all_exclusion_rects.append(fitz.Rect(
+                sig['x'] - 5,
+                sig['y'] - 5,
+                sig['x'] + sig['width'] + 5,
+                sig['y'] + sig['height'] + 5
+            ))
+
+        # Tính toán vùng nội dung
+        content_rect = page.rect
+        for rect in all_exclusion_rects:
+            content_rect -= rect  # Phép trừ hình chữ nhật
+        
+        # Lấy nội dung không bao gồm tất cả vùng chữ ký
+        text_blocks = page.get_text("blocks", clip=content_rect) or []
+        clean_content = "\n".join([block[4] for block in text_blocks if len(block) > 4]).encode()
+        clean_hash = hashlib.sha256(clean_content).hexdigest()
+
+        # Tạo chữ ký số
+        signature = await sign_data(db, user_id, aes_key, clean_content)
+
+        # Thêm watermark vào PDF (phần này giữ nguyên)
+        stamp_rect = fitz.Rect(x, y, x + stamp_width, y + stamp_height)
+        page.draw_rect(stamp_rect, color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
+        page.draw_rect(stamp_rect, color=(0, 0, 0), fill=None, width=1, overlay=True)
+        
+        page.insert_text(
+            (x + 10, y + 20), 
+            f"From: {user.username}",
+            fontname="helv",
+            fontsize=14,
+            color=(0, 0, 0),
+            overlay=True
+        )
+        page.insert_text(
+            (x + 10, y + 40), 
+            f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            fontname="helv",
+            fontsize=14,
+            color=(0, 0, 0),
+            overlay=True
+        )
+
+        # Lưu PDF và cập nhật metadata (phần này giữ nguyên)
+        watermarked_pdf = io.BytesIO()
+        doc.save(watermarked_pdf)
+        doc.close()
+
+        final_reader = PdfReader(watermarked_pdf)
+        final_writer = PdfWriter()
+        for p in final_reader.pages:
+            final_writer.add_page(p)
+        
+        existing_metadata = dict(final_reader.metadata or {})
+        signatures_info = json.loads(existing_metadata.get("/SignaturesInfo", "[]"))
+        
+        new_signature_info = {
+            "signature": signature,
+            "signer": user.username,
+            "signer_id": user.user_id,
+            "sign_date": datetime.now().isoformat(),
+            "content_hash": clean_hash,
             "page": position.page,
             "x": x,
             "y": y,
             "width": stamp_width,
-            "height": stamp_height
+            "height": stamp_height,
+            "version": 1
+        }
+        signatures_info.append(new_signature_info)
+        
+        final_writer.add_metadata({
+            **existing_metadata,
+            "/SignaturesInfo": json.dumps(signatures_info, ensure_ascii=False),
+            "/LastSignature": signature,
+            "/LastSigner": user.username,
+            "/LastSignerID": user_id,
+            "/LastSignDate": datetime.now().isoformat(),
         })
-    })
-    
-    output = io.BytesIO()
-    final_writer.write(output)
-    return output.getvalue(), signature
+        
+        output = io.BytesIO()
+        final_writer.write(output)
+        return output.getvalue(), signature
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error during signing: {str(e)}"
+        )
 
 
 
@@ -114,94 +189,113 @@ async def extract_and_verify(
     db: AsyncSession,
     pdf_bytes: bytes,
     public_key: bytes,
-    user_id: str
+    user_id: str,
+    signature_to_verify: Optional[str] = None
 ) -> dict:
     try:
         # 1. Đọc metadata
         reader = PdfReader(io.BytesIO(pdf_bytes))
         metadata = dict(reader.metadata or {})
         
-        # 2. Kiểm tra trường bắt buộc
-        required_fields = ["/Signature", "/SignerID", "/ContentHash", "/SignatureArea"]
-        if not all(field in metadata for field in required_fields):
+        # 2. Kiểm tra thông tin chữ ký
+        signatures_info = json.loads(metadata.get("/SignaturesInfo", "[]"))
+        if not signatures_info:
             return {
                 "valid": False,
-                "code": "MISSING_FIELDS",
-                "message": "Tài liệu thiếu thông tin xác thực cần thiết"
+                "code": "NO_SIGNATURES",
+                "message": "Tài liệu không có chữ ký nào"
             }
 
-        # 3. Lấy thông tin vùng chữ ký
-        try:
-            sig_area = json.loads(metadata["/SignatureArea"])
-            page_num = sig_area["page"] - 1 if sig_area["page"] > 0 else 0
-        except (json.JSONDecodeError, KeyError):
+        # 3. Tìm chữ ký cần xác thực
+        target_sig = None
+        if signature_to_verify:
+            target_sig = next((sig for sig in signatures_info if sig.get("signer_id") == signature_to_verify), None)
+        else:
+            target_sig = signatures_info[-1] if signatures_info else None
+
+        if not target_sig:
             return {
                 "valid": False,
-                "code": "INVALID_SIGNATURE_AREA",
-                "message": "Thông tin vùng chữ ký không hợp lệ"
+                "code": "SIGNATURE_NOT_FOUND",
+                "message": "Không tìm thấy chữ ký cần xác thực"
             }
 
-        # 4. Loại bỏ vùng chữ ký để lấy nội dung gốc
+        # 4. Xác thực nội dung - loại trừ tất cả các vùng chữ ký (bao gồm cả chữ ký đang xác thực)
         doc = fitz.open("pdf", pdf_bytes)
-        page = doc[page_num]
+        page = doc[target_sig["page"] - 1 if target_sig["page"] > 0 else 0]
         
-        # Tạo vùng loại trừ (thêm padding 5px xung quanh)
-        exclusion_rect = fitz.Rect(
-            sig_area["x"] - 5,
-            sig_area["y"] - 5,
-            sig_area["x"] + sig_area["width"] + 5,
-            sig_area["y"] + sig_area["height"] + 5
-        )
+        # Tạo danh sách tất cả vùng loại trừ (bao gồm cả chữ ký đang xác thực)
+        exclusion_rects = []
+        for sig in signatures_info:
+            if sig["page"] == target_sig["page"]:
+                exclusion_rects.append(fitz.Rect(
+                    sig["x"] - 5,
+                    sig["y"] - 5,
+                    sig["x"] + sig["width"] + 5,
+                    sig["y"] + sig["height"] + 5
+                ))
         
-        # Lấy nội dung không bao gồm vùng chữ ký
-        text_blocks = page.get_text("blocks", clip=page.rect - exclusion_rect)
+        # Tính toán vùng nội dung cần xác thực (loại trừ tất cả)
+        content_rect = page.rect
+        for rect in exclusion_rects:
+            content_rect -= rect
+        
+        # Lấy nội dung đã làm sạch (không chứa bất kỳ chữ ký nào)
+        text_blocks = page.get_text("blocks", clip=content_rect) or []
         clean_content = "\n".join([block[4] for block in text_blocks if len(block) > 4]).encode()
         doc.close()
 
-        # 5. Kiểm tra hash nội dung
+        # 5. Kiểm tra hash
         current_hash = hashlib.sha256(clean_content).hexdigest()
-        if current_hash != metadata["/ContentHash"]:
+        if current_hash != target_sig["content_hash"]:
             return {
                 "valid": False,
                 "code": "CONTENT_MODIFIED",
-                "message": "Nội dung tài liệu đã bị thay đổi sau khi ký",
-                "original_hash": metadata["/ContentHash"],
+                "message": "Nội dung đã bị thay đổi sau khi ký",
+                "original_hash": target_sig["content_hash"],
                 "current_hash": current_hash
             }
 
-        # 6. Xác thực chữ ký
+        # 6. Xác thực chữ ký số 
         verify_result = await verify_data(
             db=db,
             user_id=user_id,
             public_key=public_key,
             data=clean_content,
-            signature=metadata["/Signature"]
+            signature=target_sig["signature"]
         )
 
         if not verify_result.get("valid"):
             return {
                 **verify_result,
                 "code": "INVALID_SIGNATURE",
-                "signer": metadata.get("/Signer"),
-                "sign_date": metadata.get("/SignDate")
+                "signer": target_sig.get("signer"),
+                "sign_date": target_sig.get("sign_date")
             }
 
         return {
             "valid": True,
             "code": "VERIFIED",
             "message": "Tài liệu hợp lệ",
-            "signer": metadata.get("/Signer"),
-            "signer_id": metadata.get("/SignerID"),
-            "sign_date": metadata.get("/SignDate"),
-            "signature_area": sig_area,
-            "content_hash": current_hash
+            "signer": target_sig.get("signer"),
+            "signer_id": target_sig.get("signer_id"),
+            "sign_date": target_sig.get("sign_date"),
+            "signature_area": {
+                "page": target_sig["page"],
+                "x": target_sig["x"],
+                "y": target_sig["y"],  
+                "width": target_sig["width"],
+                "height": target_sig["height"]
+            },
+            "content_hash": current_hash,
+            "total_signatures": len(signatures_info)
         }
 
     except Exception as e:
         return {
             "valid": False,
             "code": "VERIFICATION_ERROR",
-            "message": f"Lỗi trong quá trình xác thực: {str(e)}"
+            "message": f"Lỗi xác thực: {str(e)}"
         }
 
 

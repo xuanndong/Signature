@@ -123,4 +123,20 @@ async def get_current_user(db: AsyncSession, user_id: str) -> UserResponse:
     )
 
 
+async def get_user_info(db: AsyncSession, username: str) -> UserResponse:
+    user = await db.execute(
+        select(User).where(User.username == username)
+    )
+    user = user.scalar_one_or_none()
+    
+    if not user:
+        return None
+    
+    return UserResponse(
+        user_id=str(user.user_id),
+        username=user.username,
+        email=user.email,
+        created_at=user.created_at
+    )
+
 # có thể thêm password reset flow, email verification, session management

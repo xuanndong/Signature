@@ -14,10 +14,14 @@ class DocumentResponse(DocumentCreate):
     created_at: datetime
     file_bytes: bytes
 
+
 class SignPosition(BaseModel):
     page: int
     x: float
     y: float
+    scale: float
+    width: int
+    height: int
 
     @validator('page', pre=True)
     def parse_page(cls, v):

@@ -5,7 +5,10 @@ import Notification from './Notification';
 const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
     const [isVerifying, setIsVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState(null);
-    const [certificateInfo, setCertificateInfo] = useState(null);
+    const [certificateInfo, setCertificateInfo] = useState({
+        content: null,
+        username: null
+    });
     const [certificateFile, setCertificateFile] = useState(null);
     const [isLoadingCert, setIsLoadingCert] = useState(false);
     const [notification, setNotification] = useState(null);
@@ -20,7 +23,7 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
             return;
         }
 
-        if (!certificateInfo) {
+        if (!certificateInfo.content) {
             showNotification('error', 'Vui lòng chọn hoặc lấy chứng thư số trước khi xác thực');
             return;
         }
@@ -71,7 +74,18 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const content = e.target.result;
-                setCertificateInfo(content);
+
+                // Extract username from filename (format: public_key_[username].cer)
+                const usernameMatch = file.name.match(/public_key_(.*?)\.cer/i);
+                const username = usernameMatch ? usernameMatch[1] : null;
+
+                setCertificateInfo({
+                    content: content,
+                    username: username
+                });
+
+                console.log(username)
+
                 setCertificateFile({
                     name: file.name,
                     type: file.type
@@ -99,7 +113,10 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
                     type: "application/x-x509-ca-cert"
                 };
 
-                setCertificateInfo(publicKey);
+                setCertificateInfo({
+                    content: publicKey,
+                    username: null
+                });
                 setCertificateFile(userCert);
                 setVerificationResult(null);
             } else {
@@ -163,9 +180,9 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
                             </div>
                             {!isLoadingCert && (
                                 <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded overflow-x-auto">
-                                    {certificateInfo && certificateInfo.length > 100
-                                        ? `${certificateInfo.substring(0, 100)}...`
-                                        : certificateInfo}
+                                    {certificateInfo.content && certificateInfo.content.length > 100
+                                        ? `${certificateInfo.content.substring(0, 100)}...`
+                                        : certificateInfo.content}
                                 </div>
                             )}
                         </div>
@@ -260,8 +277,8 @@ const VerificationInterface = ({ file, onBack, handleUploadSuccess }) => {
                 </button>
                 <button
                     onClick={handleVerify}
-                    disabled={isVerifying || !certificateInfo}
-                    className={`px-6 py-2 rounded-lg transition-colors flex items-center justify-center ${isVerifying || !certificateInfo
+                    disabled={isVerifying || !certificateInfo.content}
+                    className={`px-6 py-2 rounded-lg transition-colors flex items-center justify-center ${isVerifying || !certificateInfo.content
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-green-600 text-white hover:bg-green-700'
                         }`}

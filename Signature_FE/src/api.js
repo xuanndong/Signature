@@ -190,7 +190,8 @@ export const verifyPDF = async (file, certificateInfo) => {
 
   const formData = new FormData();
   formData.append('file', file)
-  formData.append('public_key', certificateInfo)
+  formData.append('public_key', certificateInfo.content)
+  formData.append('signature_to_verify', certificateInfo.username)
 
   try {
 
@@ -237,6 +238,9 @@ export const signPdf = async (file, position) => {
     page: position.page,
     x: position.x,
     y: position.y,
+    scale: position.scale,
+    width: position.viewportWidth,
+    height: position.viewportHeight
   }));
 
   try {
@@ -343,7 +347,7 @@ export const documentContent = async (documentId) => {
       throw new Error('Authentication required');
     }
 
-    const response = await fetch(`${API_BASE_URL}/document/${documentId}/content`, {
+    const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/${documentId}/content`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -360,6 +364,35 @@ export const documentContent = async (documentId) => {
 
   } catch (error) {
     console.error('Error fetching document content:', error);
+    throw error;
+  }
+};
+
+
+export const deleteDocument = async (documentId) => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/${API_DOCUMENT}/${documentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to delete document');
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Error deleting document:', error);
     throw error;
   }
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import FilePreviewModal from "./FilePreviewModal";
 import SignatureInterface from "./SignatureInterface";
 import VerificationInterface from "./VerificationInterface";
-import { documentContent } from "../api";
+import { documentContent, deleteDocument } from "../api";
 
 // SVG Icons
 const DownloadIcon = () => (
@@ -27,6 +27,12 @@ const LockClosedIcon = () => (
 const CheckCircleIcon = () => (
     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+const TrashIcon = () => (
+    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
 
@@ -153,7 +159,7 @@ const FileList = ({ documents, loading, signingFile, setSigningFile, verificatio
     if (signingFile) {
         return (
             <SignatureInterface
-                file={signingFile}  
+                file={signingFile}
                 onBack={handleBackFromSigning}
                 user={user}
                 handleUploadSuccess={handleUploadSuccess}
@@ -213,6 +219,30 @@ const FileList = ({ documents, loading, signingFile, setSigningFile, verificatio
         } catch (error) {
             console.error("Failed to download file:", error);
             alert(error.message || "Không thể tải file xuống");
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
+
+    const handleDeleteFile = async (document) => {
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa "${document.name}"?`)) {
+            return;
+        }
+
+        try {
+            setPreviewLoading(true);
+            const result = await deleteDocument(document.id);
+
+            if (result && result.message) {
+                alert(result.message);
+                // Gọi callback để reload danh sách
+                if (handleUploadSuccess) {
+                    handleUploadSuccess();
+                }
+            }
+        } catch (error) {
+            console.error("Failed to delete file:", error);
+            alert(error.message || "Không thể xóa file");
         } finally {
             setPreviewLoading(false);
         }
@@ -292,6 +322,12 @@ const FileList = ({ documents, loading, signingFile, setSigningFile, verificatio
                                                 className="cursor-pointer flex items-center justify-center px-2 py-1 border border-transparent rounded text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
                                             >
                                                 <DownloadIcon /> Tải xuống
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteFile(doc)}
+                                                className="cursor-pointer flex items-center justify-center px-2 py-1 border border-transparent rounded text-xs sm:text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                                            >
+                                                <TrashIcon /> Xóa
                                             </button>
                                         </div>
                                     </td>
