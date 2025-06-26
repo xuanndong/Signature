@@ -2,58 +2,59 @@
 
 ---
 
-### Thông tin dự án
+## 📌 Thông tin dự án
 Hệ thống thực hiện ký số văn bản sử dụng RSA cùng SHA1 với giao diện đẹp mắt, tương tác dễ dàng. Hệ thống ký số và ghép chữ ký vào văn bản theo tiêu chuẩn PadES.
-
-### Các chức năng hiện có
-- **Đăng ký tài khoản**  
-  ↳ Kết hợp sinh cặp khóa RSA cho người sử dụng
-
-- **Đăng nhập tài khoản**  
-  ↳ Sử dụng email đi kèm mật khẩu
-
-- **Ký số văn bản** (hiện tại chỉ hỗ trợ file PDF)  
-  ↳ Cho phép người dùng chọn vị trí và tiến hành ký số vào file PDF
-
-- **Xác thực văn bản**  
-  ↳ Cho phép người dùng lấy khóa công khai từ hệ thống (nếu là xác thực chữ ký của bản thân)  
-  ↳ Chọn khóa công khai (nếu muốn xác thực chữ ký của người khác)
-
-- **Các chức năng khác**  
-  ↳ Quản lý tài khoản  
-  ↳ Quản lý khóa  
-  ↳ Xem, tải xuống và xóa văn bản
 
 ---
 
-### Công nghệ
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/)
-- **Frontend**: [React](https://react.dev/)
-- **Thư viện khác**:  
-  ↳ cryptography  
-  ↳ pypdf  
-  ↳ electronjs
+## 🛠 Các chức năng chính
 
-### Sản phẩm
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-05-53.png)
-Giao diện ứng dụng của dự án
+### 🔐 Quản lý tài khoản
+- **Đăng ký tài khoản**  
+  → Tự động sinh cặp khóa RSA cho người dùng
+- **Đăng nhập**  
+  → Xác thực bằng email và mật khẩu
 
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-06-26.png)
-Giao diện web của dự án
+### ✍️ Ký số văn bản
+- Hỗ trợ file PDF
+- Cho phép:
+  → Chọn vị trí ký  
+  → Xem trước chữ ký  
+  → Lưu văn bản đã ký
 
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-07-19.png)
-Giao diện ký số
+### 🔎 Xác thực văn bản
+- Tùy chọn xác thực:
+  → Sử dụng khóa công khai từ hệ thống (cho chữ ký của bạn)  
+  → Nhập khóa công khai (cho chữ ký người khác)
 
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-07-54.png)
-Trạng thái cập nhật sau khi ký số thành công
+### 📂 Quản lý dữ liệu
+- Quản lý tài khoản
+- Quản lý khóa
+- Xem/Tải/Xóa văn bản
 
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-08-45.png)
-Văn bản sau khi ký số (hiện tại dùng stamp để hiển thị)
+---
 
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-09-29.png)
-Giao diện xác thực
+## 💻 Công nghệ sử dụng
 
-![](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-10-05.png)
-Trạng thái cập nhật sau khi xác thực thành công
+| Loại         | Công nghệ                  |
+|--------------|----------------------------|
+| **Backend**  | FastAPI                    |
+| **Frontend** | React + ElectronJS         |
+| **Thư viện** | cryptography, pypdf2       |
 
+---
 
+## 🖼️ Hình ảnh sản phẩm
+
+| Chức năng | Hình ảnh |
+|-----------|----------|
+| **Giao diện ứng dụng** | ![App Interface](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-05-53.png) |
+| **Giao diện web** | ![Web Interface](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-06-26.png) |
+| **Ký số văn bản** | ![Signing](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-07-19.png) |
+| **Kết quả ký số** | ![Signed Doc](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-07-54.png) |
+| **Xác thực** | ![Verification](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-09-29.png) |
+
+---
+
+## 📥 Cài đặt & Sử dụng
+(Thêm hướng dẫn cài đặt tại đây nếu cần)
