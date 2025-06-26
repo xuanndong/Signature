@@ -28,11 +28,16 @@ def _derive_key(aes_key: str, salt: bytes) -> bytes:
     )
     return kdf.derive(aes_key.encode())
 
+
+
+
+
+
+
 # ----------------------------
 # Mã hoá private key
 # ----------------------------
 def encrypt_private_key(private_key, aes_key: str) -> dict:
-    """ Mã hoá private key bằng mật khẩu người dùng """
     # Tạo salt ngẫu nhiên (16-byte)
     salt = os.urandom(16)
 
@@ -58,6 +63,7 @@ def encrypt_private_key(private_key, aes_key: str) -> dict:
         "salt": base64.b64encode(salt).decode(),
         "nonce": base64.b64encode(nonce).decode()
     }
+
 
 # ----------------------------
 # Giải mã private key

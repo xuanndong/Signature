@@ -12,6 +12,9 @@ from src.key.schemas import PublicResponse, PrivateResponse
 from cryptography.exceptions import InvalidSignature
 
 
+# vcga, vgca ban cơ yêus chính phủ, bộ khoa học công nghệ
+# hình ảnh thay cho stamp
+
 
 def generate_rsa_key_pair():
     """ Tạo cặp khoá RSA 2048-bit """
@@ -22,6 +25,12 @@ def generate_rsa_key_pair():
     public_key = private_key.public_key()
     return private_key, public_key
 
+
+async def get_key(db: AsyncSession, user_id: str):
+    result = await db.execute(
+        select(Key).where(Key.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_public_key(db: AsyncSession, user_id: str):
@@ -42,6 +51,7 @@ async def get_public_key(db: AsyncSession, user_id: str):
     public_key = base64.b64decode(public_key)
 
     return public_key
+
 
 # Get private key from db and decode
 async def get_private_key(db: AsyncSession, user_id: str, aes_key: str):
@@ -68,8 +78,9 @@ async def get_private_key(db: AsyncSession, user_id: str, aes_key: str):
         raise ValueError("Giải mã thất bại") from e
     except Exception as e:
         raise ValueError(f"Lỗi khi giải mã private key: {str(e)}") from e
-    
 
+
+# hieu suất, 
 # Ký số
 async def sign_data(db: AsyncSession, user_id: str, aes_key: str, data: bytes):
     """
@@ -90,7 +101,6 @@ async def sign_data(db: AsyncSession, user_id: str, aes_key: str, data: bytes):
     return base64.b64encode(signature).decode()
 
 
-
 # Xác thực chữ ký
 async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: bytes, signature: str):
     """
@@ -101,11 +111,11 @@ async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: b
 
     try:
         public_key_obj = load_pem_public_key(public_key)
-        signature_bytes = base64.b64decode(signature)  # Convert from base64 to bytes
+        signature_bytes = base64.b64decode(signature)  
 
         public_key_obj.verify(
             signature_bytes,
-            data,  # This should already be bytes
+            data, 
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA1()),
                 salt_length=padding.PSS.MAX_LENGTH
@@ -120,9 +130,3 @@ async def verify_data(db: AsyncSession, user_id: str, public_key: bytes, data: b
         return {"valid": False, "message": f"Lỗi xác thực: {str(e)}"} 
 
 
-
-async def get_key(db: AsyncSession, user_id: str):
-    result = await db.execute(
-        select(Key).where(Key.user_id == user_id)
-    )
-    return result.scalar_one_or_none()

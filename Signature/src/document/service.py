@@ -3,7 +3,7 @@ from sqlalchemy import select
 from src.models import Document, Signature
 from typing import List
 import base64
-
+ 
 async def get_document_by_filename(db: AsyncSession, filename: str, user_id: str) -> Document:
     """Kiểm tra xem document đã tồn tại theo filename"""
     result = await db.execute(

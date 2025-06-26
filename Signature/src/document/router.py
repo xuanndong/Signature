@@ -232,7 +232,7 @@ async def sign_pdf(
                 signature=sig
             )
             db.add(signature)
-            await db.commit()
+            await db.commit() 
             await db.refresh(signature)
 
         except Exception as e:
