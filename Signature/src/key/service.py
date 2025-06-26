@@ -12,7 +12,7 @@ from src.key.schemas import PublicResponse, PrivateResponse
 from cryptography.exceptions import InvalidSignature
 
 
-# vcga, vgca ban cơ yêus chính phủ, bộ khoa học công nghệ
+# vcga, vgca ban cơ yêu chính phủ, bộ khoa học công nghệ
 # hình ảnh thay cho stamp
 
 
