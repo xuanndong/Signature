@@ -18,12 +18,14 @@ Hệ thống thực hiện ký số văn bản sử dụng RSA cùng SHA1 với 
 ### ✍️ Ký số văn bản
 - Hỗ trợ file PDF
 - Cho phép:
+
   → Chọn vị trí ký  
   → Xem trước chữ ký  
   → Lưu văn bản đã ký
 
 ### 🔎 Xác thực văn bản
 - Tùy chọn xác thực:
+
   → Sử dụng khóa công khai từ hệ thống (cho chữ ký của bạn)  
   → Nhập khóa công khai (cho chữ ký người khác)
 
