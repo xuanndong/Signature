@@ -56,5 +56,3 @@ Hệ thống thực hiện ký số văn bản sử dụng RSA cùng SHA1 với 
 
 ---
 
-## 📥 Cài đặt & Sử dụng
-(Thêm hướng dẫn cài đặt tại đây nếu cần)
