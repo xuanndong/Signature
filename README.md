@@ -52,7 +52,9 @@ Hệ thống thực hiện ký số văn bản sử dụng RSA cùng SHA1 với 
 | **Giao diện web** | ![Web Interface](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-06-26.png) |
 | **Ký số văn bản** | ![Signing](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-07-19.png) |
 | **Kết quả ký số** | ![Signed Doc](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-07-54.png) |
+| **Văn bản sau khi ký số** | ![signature file](https://github.com/xuanndong/Signature/blob/eba1bbdf44a6469f5c9a09ff827df9c3cf21f033/images/Screenshot%20from%202025-06-26%2012-08-45.png) |
 | **Xác thực** | ![Verification](https://github.com/xuanndong/Signature/blob/9534f2cd846c0ba2c05939b13ecf7d64e7da497b/images/Screenshot%20from%202025-06-26%2012-09-29.png) |
+| **Kết quả sau khi xác thực** | ![Veried Doc](https://github.com/xuanndong/Signature/blob/eba1bbdf44a6469f5c9a09ff827df9c3cf21f033/images/Screenshot%20from%202025-06-26%2012-10-05.png)
 
 ---
 
